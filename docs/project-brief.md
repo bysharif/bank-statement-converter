@@ -25,10 +25,20 @@ The Bank Statement Converter is a comprehensive tool designed to parse, convert,
 5. **Limited Tools**: Existing tools are often expensive, limited in scope, or lack security features
 
 ### Market Opportunity:
+
+**Global Market:**
 - Small businesses and freelancers need affordable financial tools
 - Accountants and bookkeepers require efficient data processing solutions
 - Personal finance enthusiasts want better transaction management
 - Growing demand for financial automation tools
+
+**UK Market Opportunity (Additional Research):**
+- **£900,000+ annual revenue potential** with significant gaps in local specialization
+- **15-20% market share** achievable within 18 months
+- **9.7 million Monzo + 4.6 million Starling + 10+ million Revolut UK customers** underserved
+- **Making Tax Digital compliance** requirements create mandatory demand
+- No competitors offer HMRC-compliant exports or UK accounting software integrations
+- Transparent pricing opportunity (competitors hide pricing details)
 
 ## Who (Target Audience)
 
@@ -44,10 +54,18 @@ The Bank Statement Converter is a comprehensive tool designed to parse, convert,
 - **Enterprise Users**: Large-scale statement processing needs
 
 ### User Personas:
+
+**Global Market:**
 1. **Sarah (Freelance Designer)**: Needs to convert Chase and Wells Fargo statements for tax preparation
 2. **Mike (Small Business Owner)**: Processes 5-10 business accounts monthly for accounting software
 3. **Lisa (Bookkeeper)**: Handles statements from 20+ different banks for various clients
 4. **David (Developer)**: Needs API access to integrate conversion into custom financial app
+
+**UK Market (Additional):**
+5. **Emma (UK Accountant)**: Processes HSBC, Lloyds, and Barclays statements for Making Tax Digital submissions
+6. **James (Monzo User)**: Needs to convert digital bank statements for mortgage applications
+7. **Sophie (SME Owner)**: Requires VAT-compliant exports for HMRC submissions
+8. **Oliver (Accounting Firm)**: Handles 50+ UK clients with diverse banking needs
 
 ## When (Timeline/Milestones)
 
@@ -106,9 +124,18 @@ The Bank Statement Converter is a comprehensive tool designed to parse, convert,
 - **Growth**: 20% month-over-month user growth
 
 ### Business Metrics:
+
+**Global Targets:**
 - **API Usage**: 1000+ conversions per month
 - **Community**: 50+ GitHub stars in first quarter
 - **Feedback**: <24 hour response time to issues
+
+**UK Market Projections (Additional Research):**
+- **Revenue**: £15,000/month by month 6, scaling to £75,000/month by month 18
+- **Customers**: 1,500 paying customers by month 18
+- **LTV:CAC Ratio**: 4.2:1 (Professional tier: £833 LTV vs £150-300 CAC)
+- **Conversion Rate**: 4% free-to-paid (above 3.7% industry average)
+- **Market Share**: 15-20% of UK bank statement converter market
 
 ## Risk Assessment
 

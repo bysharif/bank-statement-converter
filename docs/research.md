@@ -228,15 +228,83 @@ Challenges: Description can span multiple lines
 
 ### Direct Competitors
 
-#### CSV2QIF Converter
-- **Strengths**: Simple, focused tool
-- **Weaknesses**: Limited formats, no PDF support
-- **Market Position**: Niche tool for specific format conversion
+#### Global Market Analysis (Firecrawl Research)
 
-#### Statement Converter Pro
-- **Strengths**: Desktop application, offline processing
-- **Weaknesses**: Windows-only, dated interface, expensive
-- **Market Position**: Enterprise/professional users
+#### Statement Converter (statementconverter.com)
+- **Strengths**:
+  - Extensive bank support (100+ banks including Chase, Bank of America, Wells Fargo)
+  - Direct QuickBooks integration
+  - Excellent customer service with custom solutions
+  - Affordable pricing ("nominal fee", "very affordable")
+  - Strong customer testimonials
+- **Weaknesses**:
+  - Limited to CSV/Excel input formats
+  - QuickBooks-only output
+  - No direct PDF processing
+- **Market Position**: Small business QuickBooks users
+- **Technology**: Web-based software
+
+#### MoneyThumb PDF Converter (moneythumb.com)
+- **Strengths**:
+  - 99% accuracy in bank statement conversion
+  - Direct PDF processing with OCR/IDR technology
+  - Machine learning for fraud detection
+  - Multiple output formats (.QBO, etc.)
+  - Volume licensing with discounts
+  - Auto-reconciliation features
+- **Weaknesses**:
+  - Windows-only (Pro+ version)
+  - Higher complexity
+  - Licensing fees
+- **Market Position**: Professional/enterprise users
+- **Pricing**: Volume discounts (20%-35%), lifetime licenses available
+
+#### SmallPDF (smallpdf.com)
+- **Strengths**:
+  - 30+ PDF tools including PDF to Excel
+  - OCR support for scanned documents
+  - Batch conversion capabilities
+  - Mobile app availability
+  - ISO/IEC 27001 certified, GDPR compliant
+  - Cross-platform compatibility
+- **Weaknesses**:
+  - General PDF tool, not bank-statement specific
+  - Limited financial features
+  - Subscription model
+- **Market Position**: General PDF processing market
+- **Pricing**: 7-day free trial, subscription-based
+
+#### UK Market Analysis (Claude Research)
+
+**Market Opportunity**: £900,000+ annual revenue opportunity with 15-20% market share potential within 18 months
+
+##### BankStatementConverter.com
+- **Revenue**: $9,000+ monthly revenue
+- **Strengths**: Market leader with global reach
+- **Weaknesses**: Lacks transparent pricing, no UK bank optimization, no HMRC-compliant exports
+- **UK Gap**: No specialized support for UK accounting software or tax compliance
+
+##### DocuClipper
+- **Pricing**: £39-159 monthly tiers (pricing benchmark)
+- **Strengths**: Established UK presence, transparent pricing
+- **Weaknesses**: Limited UK-specific features
+- **Market Position**: Mid-market solution
+
+##### Re-cap.com
+- **Business Model**: Free conversion as lead generation tool
+- **Strengths**: No upfront cost barrier
+- **Weaknesses**: Limited to lead generation, not core product focus
+
+##### FormX.ai
+- **Technology**: AI-powered with 92% accuracy claims
+- **Strengths**: Advanced OCR capabilities, ISO 27001 certification
+- **Weaknesses**: Global focus, not UK banking specialized
+- **Security**: Only competitor prominently displaying security certifications
+
+##### ProperSoft
+- **Pricing**: £159.99 lifetime option
+- **Model**: One-time purchase (demonstrates viability of lifetime deals)
+- **Position**: Desktop software, Windows-focused
 
 ### Indirect Competitors
 
@@ -269,6 +337,71 @@ Challenges: Description can span multiple lines
 - Real-time bank API integration
 - Advanced duplicate detection
 - Mobile application development
+
+## Competitive Analysis Summary
+
+### Key Market Insights (Based on Firecrawl Research)
+
+#### Market Gaps Identified
+
+**Global Market Gaps:**
+1. **PDF-First Approach**: Most competitors focus on CSV/Excel input; opportunity for direct PDF processing
+2. **Multi-Output Formats**: Limited competitors offer multiple accounting software outputs (most focus on QuickBooks only)
+3. **Modern UI/UX**: Many tools have dated interfaces; opportunity for modern, mobile-responsive design
+4. **Open Source Alternative**: No strong open-source competitor in this space
+5. **API-First Design**: Limited competitors offer developer APIs for integration
+
+**UK-Specific Market Gaps:**
+1. **HMRC Compliance**: No competitors offer HMRC-compliant exports for Making Tax Digital
+2. **UK Banking Specialization**: Missing support for 9.7M Monzo and 4.6M Starling Bank customers
+3. **UK Accounting Software**: No integrations with UK-specific accounting platforms
+4. **VAT Handling**: No specialized VAT processing for UK businesses
+5. **UK Date/Currency**: Poor handling of DD/MM/YYYY dates and GBP currency formatting
+6. **Transparent UK Pricing**: Competitors hide pricing, creating trust issues
+7. **UK Tax Year**: No consideration for April-March UK tax year cycles
+8. **Local Support**: No UK-based customer support or timezone consideration
+
+#### Pricing Strategy Analysis
+
+**US/Global Market:**
+- **Statement Converter**: "Nominal fee" pricing, very affordable
+- **MoneyThumb**: Volume licensing model (20%-35% discounts), lifetime licenses
+- **SmallPDF**: Subscription model with 7-day free trial
+
+**UK Market:**
+- **DocuClipper**: £39-159 monthly tiers (established UK pricing benchmark)
+- **ProperSoft**: £159.99 lifetime option (proves viability of one-time purchase)
+- **BankStatementConverter.com**: Hidden pricing creates trust issues
+- **Re-cap.com**: Free as lead generation tool
+
+**Recommended UK Pricing Strategy:**
+- **Freemium**: 5 free conversions monthly (4% free-to-paid conversion target)
+- **Starter**: £19/month (100 pages)
+- **Professional**: £49/month (500 pages, most popular tier)
+- **Business**: £99/month (2,000 pages, API access)
+- **Enterprise**: £249/month (unlimited, white-label)
+- **Lifetime Deal**: £399 for first 500 customers (acquisition strategy)
+- **Annual Discount**: 20% (positioned as "2 months free")
+
+#### Feature Gap Analysis
+| Feature | Statement Converter | MoneyThumb | SmallPDF | Our Opportunity |
+|---------|-------------------|------------|----------|-----------------|
+| PDF Processing | ❌ | ✅ | ✅ | ✅ Direct PDF parsing |
+| Bank-Specific Parsing | ✅ | ✅ | ❌ | ✅ AI-powered detection |
+| Multiple Output Formats | ❌ | ✅ | ❌ | ✅ Universal exports |
+| Web-Based | ✅ | ❌ | ✅ | ✅ Local + cloud options |
+| Modern UI | ❓ | ❌ | ✅ | ✅ React/modern stack |
+| API Access | ❌ | ❌ | ❌ | ✅ Developer-friendly |
+| Open Source | ❌ | ❌ | ❌ | ✅ Community-driven |
+
+#### Competitive Positioning
+**Our Differentiators:**
+1. **Local-First Processing**: Privacy-focused with optional cloud features
+2. **Universal Output**: Support for multiple accounting software, not just QuickBooks
+3. **Modern Technology Stack**: React/Next.js with excellent mobile experience
+4. **Open Source Core**: Community contributions and transparency
+5. **API-First**: Enable developer integrations and custom workflows
+6. **Intelligent Parsing**: ML-powered bank detection and categorization
 
 ## Next Steps for Research
 
