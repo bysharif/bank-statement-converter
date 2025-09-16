@@ -15,7 +15,7 @@ export function CTASection() {
             <div className="w-10 h-10 bg-uk-blue-100 rounded-xl flex items-center justify-center">
               <CheckCircle className="w-5 h-5 text-uk-blue-600" />
             </div>
-            <span className="text-gray-600 text-sm font-medium">>1.2K Statements processed</span>
+            <span className="text-gray-600 text-sm font-medium">1.2K+ Statements processed</span>
           </div>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-uk-blue-100 rounded-xl flex items-center justify-center">

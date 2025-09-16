@@ -47,77 +47,74 @@ const mockFiles: ConvertedFile[] = [
   {
     id: "1",
     originalName: "HSBC_Statement_March_2024.pdf",
-    convertedName: "HSBC_Statement_March_2024.csv",
     bank: "HSBC",
-    uploadDate: new Date("2024-03-15T10:30:00Z"),
-    processingTime: "12.4s",
+    exportFormat: "csv" as const,
+    downloadUrl: "/api/download/1",
+    createdAt: new Date("2024-03-15T10:30:00Z"),
+    expiresAt: new Date("2024-04-15T10:30:00Z"),
+    fileSize: 2516582,
     transactionCount: 1247,
-    fileSize: "2.4 MB",
-    outputSize: "186 KB",
-    status: "completed",
-    downloadUrl: "/api/download/1"
+    status: "ready"
   },
   {
     id: "2",
     originalName: "Lloyds_Feb_2024.pdf",
-    convertedName: "Lloyds_Feb_2024.csv",
     bank: "Lloyds",
-    uploadDate: new Date("2024-02-28T14:22:00Z"),
-    processingTime: "8.7s",
+    exportFormat: "csv" as const,
+    downloadUrl: "/api/download/2",
+    createdAt: new Date("2024-02-28T14:22:00Z"),
+    expiresAt: new Date("2024-03-28T14:22:00Z"),
+    fileSize: 1887437,
     transactionCount: 623,
-    fileSize: "1.8 MB",
-    outputSize: "94 KB",
-    status: "completed",
-    downloadUrl: "/api/download/2"
+    status: "ready"
   },
   {
     id: "3",
     originalName: "Barclays_Statement_Jan_2024.pdf",
-    convertedName: "Barclays_Statement_Jan_2024.csv",
     bank: "Barclays",
-    uploadDate: new Date("2024-01-31T09:15:00Z"),
-    processingTime: "15.2s",
+    exportFormat: "csv" as const,
+    downloadUrl: "/api/download/3",
+    createdAt: new Date("2024-01-31T09:15:00Z"),
+    expiresAt: new Date("2024-02-28T09:15:00Z"),
+    fileSize: 3251200,
     transactionCount: 856,
-    fileSize: "3.1 MB",
-    outputSize: "128 KB",
-    status: "completed",
-    downloadUrl: "/api/download/3"
+    status: "ready"
   },
   {
     id: "4",
     originalName: "Unknown_Format.pdf",
     bank: "Unknown",
-    uploadDate: new Date("2024-01-28T16:45:00Z"),
-    processingTime: "2.1s",
-    fileSize: "0.9 MB",
-    status: "failed",
-    error: "Unsupported bank format detected"
+    exportFormat: "csv" as const,
+    downloadUrl: "/api/download/4",
+    createdAt: new Date("2024-01-28T16:45:00Z"),
+    expiresAt: new Date("2024-02-28T16:45:00Z"),
+    fileSize: 943718,
+    transactionCount: 0,
+    status: "expired"
   },
   {
     id: "5",
     originalName: "Monzo_Statement_Dec_2023.csv",
-    convertedName: "Monzo_Statement_Dec_2023.csv",
     bank: "Monzo",
-    uploadDate: new Date("2023-12-31T23:59:00Z"),
-    processingTime: "3.8s",
+    exportFormat: "csv" as const,
+    downloadUrl: "/api/download/5",
+    createdAt: new Date("2023-12-31T23:59:00Z"),
+    expiresAt: new Date("2024-01-31T23:59:00Z"),
+    fileSize: 250880,
     transactionCount: 324,
-    fileSize: "245 KB",
-    outputSize: "48 KB",
-    status: "completed",
-    downloadUrl: "/api/download/5"
+    status: "ready"
   },
   {
     id: "6",
     originalName: "Starling_Nov_2023.pdf",
-    convertedName: "Starling_Nov_2023.csv",
     bank: "Starling",
-    uploadDate: new Date("2023-11-30T12:30:00Z"),
-    processingTime: "6.9s",
+    exportFormat: "csv" as const,
+    downloadUrl: "/api/download/6",
+    createdAt: new Date("2023-11-30T12:30:00Z"),
+    expiresAt: new Date("2023-12-30T12:30:00Z"),
+    fileSize: 1258291,
     transactionCount: 445,
-    fileSize: "1.2 MB",
-    outputSize: "67 KB",
-    status: "completed",
-    downloadUrl: "/api/download/6"
+    status: "ready"
   }
 ]
 
@@ -144,9 +141,9 @@ function FileHistoryTable() {
 
   const getStatusIcon = (status: ConvertedFile['status']) => {
     switch (status) {
-      case 'completed':
+      case 'ready':
         return <CheckCircle2 className="h-4 w-4 text-green-600" />
-      case 'failed':
+      case 'expired':
         return <XCircle className="h-4 w-4 text-red-600" />
       case 'processing':
         return <Clock className="h-4 w-4 text-uk-blue-600" />
@@ -157,10 +154,10 @@ function FileHistoryTable() {
 
   const getStatusBadge = (status: ConvertedFile['status']) => {
     switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-800">Completed</Badge>
-      case 'failed':
-        return <Badge variant="destructive">Failed</Badge>
+      case 'ready':
+        return <Badge className="bg-green-100 text-green-800">Ready</Badge>
+      case 'expired':
+        return <Badge variant="destructive">Expired</Badge>
       case 'processing':
         return <Badge className="bg-blue-100 text-uk-blue-600">Processing</Badge>
       default:
@@ -238,9 +235,7 @@ function FileHistoryTable() {
                       <FileText className="h-4 w-4 text-muted-foreground" />
                       <div>
                         <p className="font-medium text-sm">{file.originalName}</p>
-                        {file.convertedName && (
-                          <p className="text-xs text-muted-foreground">→ {file.convertedName}</p>
-                        )}
+                        <p className="text-xs text-muted-foreground">→ {file.exportFormat.toUpperCase()}</p>
                       </div>
                     </div>
                   </TableCell>
@@ -250,7 +245,7 @@ function FileHistoryTable() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{formatDate(file.uploadDate)}</span>
+                      <span className="text-sm">{formatDate(file.createdAt)}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -267,14 +262,11 @@ function FileHistoryTable() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm">{file.processingTime}</span>
+                    <span className="text-sm">-</span>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <div>{file.fileSize}</div>
-                      {file.outputSize && (
-                        <div className="text-xs text-muted-foreground">→ {file.outputSize}</div>
-                      )}
+                      <div>{(file.fileSize / 1024 / 1024).toFixed(1)} MB</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -285,7 +277,7 @@ function FileHistoryTable() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {file.status === 'completed' && file.downloadUrl && (
+                        {file.status === 'ready' && file.downloadUrl && (
                           <>
                             <DropdownMenuItem>
                               <Download className="mr-2 h-4 w-4" />
@@ -327,7 +319,7 @@ function FileHistoryTable() {
 
 function QuickStats() {
   const totalFiles = mockFiles.length
-  const completedFiles = mockFiles.filter(f => f.status === 'completed').length
+  const completedFiles = mockFiles.filter(f => f.status === 'ready').length
   const totalTransactions = mockFiles
     .filter(f => f.transactionCount)
     .reduce((sum, f) => sum + (f.transactionCount || 0), 0)
