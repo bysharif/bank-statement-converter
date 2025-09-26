@@ -7,66 +7,57 @@ import {
   FileText,
   BarChart3,
   Settings,
-  CreditCard,
-  Code,
-  Users,
-  Zap,
-  Bot,
+  History,
+  HelpCircle,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
-import { CompanyLogo } from "@/components/company-logo"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
 // Mock user data
 const user = {
-  name: "Natasha Coventry-Marshall",
-  email: "natasha@coventry-marshall.co.uk",
-  avatar: "/avatars/natasha-cm.jpg",
-  plan: "professional" as const,
+  name: "Demo User",
+  email: "email@test.com",
+  avatar: "",
+  plan: "free" as const,
 }
-
-// Custom logo component for sidebar
-const SidebarLogo = () => <CompanyLogo size="sm" />
-
-// Mock team data
-const teams = [
-  {
-    name: "convert-bankstatement.com",
-    logo: SidebarLogo,
-    plan: "Professional Plan",
-  },
-]
 
 const navMain = [
   {
     title: "Dashboard",
     url: "/dashboard",
     icon: Home,
-    isActive: true,
+  },
+  {
+    title: "Convert Files",
+    url: "/convert",
+    icon: Upload,
   },
   {
     title: "History",
-    url: "/dashboard/history",
-    icon: FileText,
-  },
-  {
-    title: "Starred",
-    url: "/dashboard/starred",
-    icon: Bot,
+    url: "/dashboard#history",
+    icon: History,
   },
   {
     title: "Settings",
-    url: "/dashboard/settings",
+    url: "/settings",
     icon: Settings,
+    planRequired: "business",
+  },
+  {
+    title: "Help & Support",
+    url: "/help",
+    icon: HelpCircle,
   },
 ]
 
@@ -74,7 +65,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={teams} />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <a href="/dashboard">
+                <div className="bg-uk-blue-600 text-white flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <FileText className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">Bank Statement</span>
+                  <span className="truncate text-xs">Converter</span>
+                </div>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} currentPlan={user.plan} />
