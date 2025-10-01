@@ -20,34 +20,32 @@ const mockJobs: ProcessingJob[] = [
   {
     id: "1",
     fileName: "HSBC_Statement_March_2024.pdf",
-    fileSize: "2.4 MB",
+    fileSize: 2.4,
     bank: "HSBC",
     status: "processing",
     progress: 65,
-    startTime: new Date(Date.now() - 1000 * 60 * 2),
-    transactionCount: 847
+    createdAt: new Date(Date.now() - 1000 * 60 * 2)
   },
   {
     id: "2",
     fileName: "Lloyds_Feb_2024.pdf",
-    fileSize: "1.8 MB",
+    fileSize: 1.8,
     bank: "Lloyds",
-    status: "completed",
+    status: "complete",
     progress: 100,
-    startTime: new Date(Date.now() - 1000 * 60 * 5),
-    endTime: new Date(Date.now() - 1000 * 60 * 3),
-    transactionCount: 623,
-    downloadUrl: "/api/download/2"
+    createdAt: new Date(Date.now() - 1000 * 60 * 5),
+    completedAt: new Date(Date.now() - 1000 * 60 * 3)
   },
   {
     id: "3",
     fileName: "Unknown_Format.pdf",
-    fileSize: "0.9 MB",
-    status: "failed",
+    fileSize: 0.9,
+    bank: "Unknown",
+    status: "error",
     progress: 0,
-    startTime: new Date(Date.now() - 1000 * 60 * 8),
-    endTime: new Date(Date.now() - 1000 * 60 * 7),
-    error: "Unsupported bank format detected"
+    createdAt: new Date(Date.now() - 1000 * 60 * 8),
+    completedAt: new Date(Date.now() - 1000 * 60 * 7),
+    errorMessage: "Unsupported bank format detected"
   }
 ]
 
@@ -137,9 +135,9 @@ function ProcessingQueue() {
 
   const getStatusIcon = (status: ProcessingJob['status']) => {
     switch (status) {
-      case 'completed':
+      case 'complete':
         return <CheckCircle2 className="h-4 w-4 text-green-600" />
-      case 'failed':
+      case 'error':
         return <XCircle className="h-4 w-4 text-red-600" />
       case 'processing':
         return <Clock className="h-4 w-4 text-uk-blue-600 animate-spin" />
@@ -150,9 +148,9 @@ function ProcessingQueue() {
 
   const getStatusBadge = (status: ProcessingJob['status']) => {
     switch (status) {
-      case 'completed':
+      case 'complete':
         return <Badge className="bg-green-100 text-green-800">Completed</Badge>
-      case 'failed':
+      case 'error':
         return <Badge variant="destructive">Failed</Badge>
       case 'processing':
         return <Badge className="bg-blue-100 text-uk-blue-600">Processing</Badge>
@@ -198,7 +196,7 @@ function ProcessingQueue() {
                 </div>
                 <div className="flex items-center gap-2">
                   {getStatusBadge(job.status)}
-                  {job.status === 'completed' && job.downloadUrl && (
+                  {job.status === 'complete' && (
                     <Button size="sm" variant="outline">
                       <Download className="h-4 w-4" />
                     </Button>
@@ -219,17 +217,17 @@ function ProcessingQueue() {
                 </div>
               )}
 
-              {job.status === 'completed' && (
+              {job.status === 'complete' && job.completedAt && (
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{job.transactionCount} transactions processed</span>
-                  <span>Completed in {formatDuration(job.startTime, job.endTime)}</span>
+                  <span>Processing completed</span>
+                  <span>Completed in {formatDuration(job.createdAt, job.completedAt)}</span>
                 </div>
               )}
 
-              {job.status === 'failed' && job.error && (
+              {job.status === 'error' && job.errorMessage && (
                 <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 p-2 rounded">
                   <XCircle className="h-4 w-4" />
-                  <span>{job.error}</span>
+                  <span>{job.errorMessage}</span>
                 </div>
               )}
             </div>
