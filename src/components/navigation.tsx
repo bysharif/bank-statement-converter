@@ -5,15 +5,9 @@ import { Menu, X, ExternalLink, Zap, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { SignupModal } from '@/components/signup-modal'
 
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-
-  const handleTryFree = () => {
-    setIsModalOpen(true)
-  }
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/70 backdrop-blur-xl">
@@ -54,15 +48,17 @@ export function Navigation() {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center space-x-3">
-            <Button variant="ghost" className="text-gray-600 hover:text-gray-900 font-medium">
-              Sign In
+            <Button variant="ghost" className="text-gray-600 hover:text-gray-900 font-medium" asChild>
+              <Link href="/auth/signin">Sign In</Link>
             </Button>
             <Button
-              onClick={handleTryFree}
               className="bg-gradient-to-r from-uk-blue-600 to-uk-blue-700 hover:from-uk-blue-700 hover:to-uk-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg px-6"
+              asChild
             >
-              Try Free
-              <ExternalLink className="w-4 h-4 ml-2" />
+              <Link href="/dashboard">
+                Try Free
+                <ExternalLink className="w-4 h-4 ml-2" />
+              </Link>
             </Button>
           </div>
 
@@ -96,29 +92,23 @@ export function Navigation() {
                 <Link href="/blog">Blog</Link>
               </Button>
               <div className="flex flex-col space-y-2 pt-4 border-t border-gray-100">
-                <Button variant="ghost" className="text-gray-600 hover:text-gray-900 justify-start">
-                  Sign In
+                <Button variant="ghost" className="text-gray-600 hover:text-gray-900 justify-start" asChild>
+                  <Link href="/auth/signin">Sign In</Link>
                 </Button>
                 <Button
-                  onClick={handleTryFree}
                   className="bg-gradient-to-r from-uk-blue-600 to-uk-blue-700 hover:from-uk-blue-700 hover:to-uk-blue-800 text-white justify-start w-full"
+                  asChild
                 >
-                  Try Free
-                  <ExternalLink className="w-4 h-4 ml-2" />
+                  <Link href="/dashboard">
+                    Try Free
+                    <ExternalLink className="w-4 h-4 ml-2" />
+                  </Link>
                 </Button>
               </div>
             </div>
           </div>
         )}
       </div>
-
-      <SignupModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        planName="Free"
-        planPrice="£0"
-        planType="free"
-      />
     </nav>
   )
 }

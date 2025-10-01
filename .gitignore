@@ -112,3 +112,5 @@ temp/
 uploads/
 statements/
 .vercel
+
+/generated/prisma

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { FileUpload } from '@/components/file-upload'
 import { AppSidebar } from "@/components/app-sidebar"
+import { ThemeToggle } from "@/components/theme-toggle"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -121,11 +122,6 @@ export default function Dashboard() {
     }
   }
 
-  const handleSignOut = async () => {
-    // Clear the simple auth cookie and redirect
-    document.cookie = 'auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;'
-    window.location.href = '/'
-  }
 
   if (isLoading) {
     return (
@@ -182,9 +178,7 @@ export default function Dashboard() {
             <Badge variant="outline" className="capitalize">
               Free Plan
             </Badge>
-            <Button variant="outline" onClick={handleSignOut}>
-              Sign Out
-            </Button>
+            <ThemeToggle />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
@@ -339,10 +333,18 @@ export default function Dashboard() {
                       </div>
                       {job.status === 'completed' && job.result && (
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(`/api/download/${job.id}?format=csv`, '_blank')}
+                          >
                             Download CSV
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(`/api/download/${job.id}?format=qif`, '_blank')}
+                          >
                             Download QIF
                           </Button>
                         </div>

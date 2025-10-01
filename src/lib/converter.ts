@@ -1,9 +1,10 @@
 export interface Transaction {
   date: string
   description: string
+  transactionId?: string
   amount: number
-  balance?: number
-  type: 'debit' | 'credit'
+  balance: number
+  type: 'Credit' | 'Debit'
 }
 
 export interface ConversionResult {
@@ -19,6 +20,12 @@ export interface ConversionResult {
   }
   format: 'csv' | 'excel' | 'qif'
   originalFile: string
+}
+
+// PDF processing interface
+interface PDFParseResult {
+  text: string
+  error?: string
 }
 
 export class BankStatementConverter {
@@ -44,52 +51,30 @@ export class BankStatementConverter {
     return result
   }
 
-  private static detectBankFormat(content: string): string {
-    const lines = content.split('\n').slice(0, 5) // Check first 5 lines
-    const headers = lines.join(' ').toLowerCase()
+  protected static parseTransactions(content: string): Transaction[] {
+    // Import parsers
+    const { WiseParser } = require('./parsers/wise-parser')
+    const { GenericParser } = require('./parsers/generic-parser')
 
-    if (headers.includes('hsbc') || headers.includes('reference number')) {
-      return 'hsbc'
-    }
-    if (headers.includes('lloyds') || headers.includes('sort code')) {
-      return 'lloyds'
-    }
-    if (headers.includes('barclays') || headers.includes('account number')) {
-      return 'barclays'
-    }
-    if (headers.includes('natwest') || headers.includes('transaction date')) {
-      return 'natwest'
-    }
-    if (headers.includes('monzo') || headers.includes('merchant')) {
-      return 'monzo'
-    }
+    const PARSERS = [
+      WiseParser,
+      GenericParser // Must be last - it's the fallback
+    ]
 
-    return 'generic'
-  }
+    console.log('=== BANK STATEMENT PARSER ===')
+    console.log(`Content length: ${content.length} characters`)
 
-  private static parseTransactions(content: string, format: string): Transaction[] {
-    const lines = content.split('\n').filter(line => line.trim())
-    const transactions: Transaction[] = []
+    // Find appropriate parser
+    const parser = PARSERS.find(p => p.identify(content))
+    console.log(`Using parser: ${parser.name}`)
 
-    // Skip header rows (typically first 1-3 rows depending on bank)
-    const dataStartIndex = format === 'monzo' ? 1 : 2
-
-    for (let i = dataStartIndex; i < lines.length; i++) {
-      const line = lines[i].trim()
-      if (!line) continue
-
-      try {
-        const transaction = this.parseTransactionLine(line, format)
-        if (transaction) {
-          transactions.push(transaction)
-        }
-      } catch (error) {
-        console.warn(`Failed to parse line ${i}: ${line}`, error)
-      }
-    }
+    // Parse transactions
+    const transactions = parser.parse(content)
+    console.log(`Parsed ${transactions.length} transactions with ${parser.name} parser`)
 
     return transactions
   }
+
 
   private static parseTransactionLine(line: string, format: string): Transaction | null {
     const fields = this.parseCSVLine(line)
@@ -98,6 +83,8 @@ export class BankStatementConverter {
 
     try {
       switch (format) {
+        case 'wise':
+          return this.parseWiseTransaction(fields)
         case 'hsbc':
           return this.parseHSBCTransaction(fields)
         case 'lloyds':
@@ -116,6 +103,47 @@ export class BankStatementConverter {
     }
   }
 
+  private static parseWiseTransaction(fields: string[]): Transaction | null {
+    // Wise format: Description | Incoming | Outgoing | Balance
+    // Multi-line format where next line may contain date and transaction ID
+    if (fields.length < 4) return null
+
+    const [description, incoming, outgoing, balance] = fields
+
+    // Parse amounts (handle commas and empty fields)
+    const incomingAmount = incoming ? parseFloat(incoming.replace(/[£,\s]/g, '')) : 0
+    const outgoingAmount = outgoing ? parseFloat(outgoing.replace(/[£,\s-]/g, '')) : 0
+    const balanceAmount = balance ? parseFloat(balance.replace(/[£,\s]/g, '')) : undefined
+
+    // Determine the transaction amount and type
+    let amount = 0
+    let type: 'Debit' | 'Credit' = 'Debit'
+
+    if (incomingAmount && incomingAmount > 0) {
+      amount = incomingAmount
+      type = 'Credit'
+    } else if (outgoingAmount && outgoingAmount > 0) {
+      amount = outgoingAmount
+      type = 'Debit'
+    } else {
+      return null // Skip if no valid amount
+    }
+
+    // Clean description
+    const cleanDescription = description.replace(/"/g, '').trim()
+
+    // Use current date as fallback (will be updated by multi-line parser)
+    const currentDate = new Date().toISOString().split('T')[0]
+
+    return {
+      date: currentDate,
+      description: cleanDescription,
+      amount: amount,
+      balance: balanceAmount || 0,
+      type: type
+    }
+  }
+
   private static parseHSBCTransaction(fields: string[]): Transaction | null {
     // HSBC format: Date, Description, Amount, Balance
     if (fields.length < 3) return null
@@ -127,8 +155,8 @@ export class BankStatementConverter {
       date: this.normalizeDate(dateStr),
       description: description.replace(/"/g, ''),
       amount: Math.abs(amount),
-      balance: balanceStr ? parseFloat(balanceStr.replace(/[£,]/g, '')) : undefined,
-      type: amount < 0 ? 'debit' : 'credit'
+      balance: balanceStr ? parseFloat(balanceStr.replace(/[£,]/g, '')) : 0,
+      type: amount < 0 ? 'Debit' : 'Credit'
     }
   }
 
@@ -143,8 +171,8 @@ export class BankStatementConverter {
       date: this.normalizeDate(dateStr),
       description: `${type}: ${description}`.replace(/"/g, ''),
       amount: Math.abs(amount),
-      balance: balanceStr ? parseFloat(balanceStr.replace(/[£,]/g, '')) : undefined,
-      type: amount < 0 ? 'debit' : 'credit'
+      balance: balanceStr ? parseFloat(balanceStr.replace(/[£,]/g, '')) : 0,
+      type: amount < 0 ? 'Debit' : 'Credit'
     }
   }
 
@@ -159,7 +187,8 @@ export class BankStatementConverter {
       date: this.normalizeDate(dateStr),
       description: description.replace(/"/g, ''),
       amount: Math.abs(amount),
-      type: amount < 0 ? 'debit' : 'credit'
+      balance: 0, // Barclays doesn't provide balance in this format
+      type: amount < 0 ? 'Debit' : 'Credit'
     }
   }
 
@@ -174,8 +203,8 @@ export class BankStatementConverter {
       date: this.normalizeDate(dateStr),
       description: `${type}: ${description}`.replace(/"/g, ''),
       amount: Math.abs(amount),
-      balance: balanceStr ? parseFloat(balanceStr.replace(/[£,]/g, '')) : undefined,
-      type: amount < 0 ? 'debit' : 'credit'
+      balance: balanceStr ? parseFloat(balanceStr.replace(/[£,]/g, '')) : 0,
+      type: amount < 0 ? 'Debit' : 'Credit'
     }
   }
 
@@ -190,25 +219,59 @@ export class BankStatementConverter {
       date: this.normalizeDate(dateStr),
       description: description.replace(/"/g, ''),
       amount: Math.abs(amount),
-      balance: balanceStr ? parseFloat(balanceStr.replace(/[£,]/g, '')) : undefined,
-      type: amount < 0 ? 'debit' : 'credit'
+      balance: balanceStr ? parseFloat(balanceStr.replace(/[£,]/g, '')) : 0,
+      type: amount < 0 ? 'Debit' : 'Credit'
     }
   }
 
   private static parseGenericTransaction(fields: string[]): Transaction | null {
-    // Generic format: assume Date, Description, Amount
+    // Generic format: try to identify date, description, and amount fields
     if (fields.length < 3) return null
 
-    const [dateStr, description, amountStr] = fields
-    const amount = parseFloat(amountStr.replace(/[£,$,]/g, ''))
+    let dateStr = ''
+    let description = ''
+    let amount = 0
+    let foundAmount = false
+
+    // Find the amount field (look for numeric values)
+    for (let i = 0; i < fields.length; i++) {
+      const field = fields[i].replace(/[£,$,\s]/g, '')
+      const numValue = parseFloat(field)
+      if (!isNaN(numValue) && numValue !== 0) {
+        amount = numValue
+        foundAmount = true
+        // Remove amount field and use remaining fields for date and description
+        const remainingFields = fields.filter((_, index) => index !== i)
+        if (remainingFields.length >= 2) {
+          dateStr = remainingFields[0]
+          description = remainingFields.slice(1).join(' ')
+        }
+        break
+      }
+    }
+
+    if (!foundAmount) return null
+
+    // Fallback to original format if amount detection fails
+    if (!dateStr) {
+      dateStr = fields[0]
+      description = fields.slice(1, -1).join(' ')
+      const lastField = fields[fields.length - 1].replace(/[£,$,\s]/g, '')
+      amount = parseFloat(lastField)
+    }
 
     if (isNaN(amount)) return null
 
-    return {
-      date: this.normalizeDate(dateStr),
-      description: description.replace(/"/g, ''),
-      amount: Math.abs(amount),
-      type: amount < 0 ? 'debit' : 'credit'
+    try {
+      return {
+        date: this.normalizeDate(dateStr),
+        description: description.replace(/"/g, ''),
+        amount: Math.abs(amount),
+        balance: 0, // Generic parser doesn't provide balance
+        type: amount < 0 ? 'Debit' : 'Credit'
+      }
+    } catch (error) {
+      return null
     }
   }
 
@@ -242,58 +305,74 @@ export class BankStatementConverter {
     return cleaned // Return as-is if can't parse
   }
 
+  // PDF processing is handled server-side only
+  private static async extractTextFromPDF(file: File): Promise<PDFParseResult> {
+    return {
+      text: '',
+      error: 'PDF processing must be done server-side. Use the async upload endpoint instead.'
+    }
+  }
+
   public static async convertFile(file: File, outputFormat: 'csv' | 'excel' | 'qif' = 'csv'): Promise<ConversionResult> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
+    try {
+      let content: string
 
-      reader.onload = (e) => {
-        try {
-          const content = e.target?.result as string
-          const bankFormat = this.detectBankFormat(content)
-          const transactions = this.parseTransactions(content, bankFormat)
+      // Check if file is PDF - client-side cannot process PDFs
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        throw new Error('PDF files must be processed using the server-side upload API. Please use the async upload feature.')
+      }
 
-          if (transactions.length === 0) {
-            throw new Error('No transactions found in the file')
-          }
+      // Handle CSV and other text files only
+      content = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
 
-          // Calculate summary
-          const totalCredits = transactions
-            .filter(t => t.type === 'credit')
-            .reduce((sum, t) => sum + t.amount, 0)
-
-          const totalDebits = transactions
-            .filter(t => t.type === 'debit')
-            .reduce((sum, t) => sum + t.amount, 0)
-
-          const dates = transactions.map(t => t.date).sort()
-
-          const result: ConversionResult = {
-            transactions,
-            summary: {
-              totalTransactions: transactions.length,
-              totalCredits,
-              totalDebits,
-              dateRange: {
-                from: dates[0],
-                to: dates[dates.length - 1]
-              }
-            },
-            format: outputFormat,
-            originalFile: file.name
-          }
-
-          resolve(result)
-        } catch (error) {
-          reject(error)
+        reader.onload = (e) => {
+          resolve(e.target?.result as string)
         }
+
+        reader.onerror = () => {
+          reject(new Error('Failed to read file'))
+        }
+
+        reader.readAsText(file)
+      })
+
+      const transactions = this.parseTransactions(content)
+
+      if (transactions.length === 0) {
+        throw new Error('No transactions found in the file. Please ensure the file contains valid bank statement data.')
       }
 
-      reader.onerror = () => {
-        reject(new Error('Failed to read file'))
+      // Calculate summary
+      const totalCredits = transactions
+        .filter(t => t.type === 'Credit')
+        .reduce((sum, t) => sum + t.amount, 0)
+
+      const totalDebits = transactions
+        .filter(t => t.type === 'Debit')
+        .reduce((sum, t) => Math.abs(sum + t.amount), 0)
+
+      const dates = transactions.map(t => t.date).sort()
+
+      const result: ConversionResult = {
+        transactions,
+        summary: {
+          totalTransactions: transactions.length,
+          totalCredits,
+          totalDebits,
+          dateRange: {
+            from: dates[0],
+            to: dates[dates.length - 1]
+          }
+        },
+        format: outputFormat,
+        originalFile: file.name
       }
 
-      reader.readAsText(file)
-    })
+      return result
+    } catch (error) {
+      throw error instanceof Error ? error : new Error('Unknown error occurred during file conversion')
+    }
   }
 
   public static exportToCSV(result: ConversionResult): string {
@@ -319,7 +398,7 @@ export class BankStatementConverter {
 
     result.transactions.forEach(transaction => {
       qif += `D${transaction.date}\n`
-      qif += `T${transaction.type === 'debit' ? '-' : ''}${transaction.amount.toFixed(2)}\n`
+      qif += `T${transaction.type === 'Debit' ? '-' : ''}${transaction.amount.toFixed(2)}\n`
       qif += `P${transaction.description}\n`
       qif += '^\n'
     })

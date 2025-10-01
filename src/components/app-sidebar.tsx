@@ -9,6 +9,7 @@ import {
   Settings,
   History,
   HelpCircle,
+  Brain,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -45,14 +46,18 @@ const navMain = [
   },
   {
     title: "History",
-    url: "/dashboard#history",
+    url: "/history",
     icon: History,
+  },
+  {
+    title: "AI Categorisation",
+    url: "/ai-categorisation",
+    icon: Brain,
   },
   {
     title: "Settings",
     url: "/settings",
     icon: Settings,
-    planRequired: "business",
   },
   {
     title: "Help & Support",

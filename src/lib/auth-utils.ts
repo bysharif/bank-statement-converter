@@ -40,3 +40,15 @@ export async function requireAuth(req?: NextRequest) {
     session
   }
 }
+
+export async function verifyAuth(req: NextRequest) {
+  try {
+    const session = await getUserSession(req)
+    if (!session?.user) {
+      return { success: false, error: 'Authentication required' }
+    }
+    return { success: true, user: session.user }
+  } catch (error) {
+    return { success: false, error: 'Authentication failed' }
+  }
+}
