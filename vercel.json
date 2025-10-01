@@ -3,11 +3,6 @@
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "functions": {
-    "src/app/**/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "regions": ["lhr1"],
   "env": {
     "NODE_OPTIONS": "--max-old-space-size=4096"
