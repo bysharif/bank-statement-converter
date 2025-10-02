@@ -91,13 +91,13 @@ export function EmailDownloadModal({
                   Email sent successfully! 📧
                 </h2>
                 <p className="text-gray-600 text-sm">
-                  We've sent your FREE CSV preview (3 transactions) to <strong>{email}</strong> and it's also downloading to your computer now.
+                  We've sent your FREE CSV preview (50 transactions) to <strong>{email}</strong> and it's also downloading to your computer now.
                 </p>
               </div>
 
               <div className="space-y-3">
                 <Badge variant="outline" className="text-sm">
-                  3 transactions included
+                  50 transactions included
                 </Badge>
                 <p className="text-xs text-gray-500">
                   Want to convert more transactions? Upgrade to unlock unlimited conversions.
@@ -129,7 +129,7 @@ export function EmailDownloadModal({
                 Download your FREE CSV
               </h2>
               <p className="text-gray-600 text-sm">
-                Enter your email to receive the first 3 transactions from <strong>{fileName}</strong>. The file will also download to your computer.
+                Enter your email to receive the first 50 transactions from <strong>{fileName}</strong>. The file will also download to your computer.
               </p>
             </div>
 
@@ -146,7 +146,7 @@ export function EmailDownloadModal({
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Transactions:</span>
-                <span className="font-medium">3 of {transactionCount}</span>
+                <span className="font-medium">50 of {transactionCount}</span>
               </div>
             </div>
 

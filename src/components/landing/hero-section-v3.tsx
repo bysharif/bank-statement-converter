@@ -94,7 +94,7 @@ export function HeroSectionV3() {
     if (uploadedFile) {
       // Generate mock data and CSV content
       const mockData = generateMockTransactions(uploadedFile.name)
-      const csvContent = generateCSVContent(mockData.preview)
+      const csvContent = generateCSVContent(mockData.download)
 
       // Download CSV file locally
       const fileName = uploadedFile.name.replace(/\.[^/.]+$/, '') + '_preview.csv'
@@ -320,7 +320,7 @@ export function HeroSectionV3() {
                               onClick={handleDownloadCSV}
                             >
                               <Download className="w-4 h-4 mr-2" />
-                              Download preview CSV
+                              Download 50 transactions CSV
                             </Button>
 
                             <Button

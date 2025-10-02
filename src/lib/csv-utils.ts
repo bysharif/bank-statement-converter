@@ -41,8 +41,8 @@ export function downloadCSV(content: string, filename: string): void {
   }
 }
 
-// Generate 50 mock transactions for free preview
-export function generateMockTransactions(fileName: string): { preview: Transaction[], total: number } {
+// Generate 50 mock transactions for free download
+export function generateMockTransactions(fileName: string): { preview: Transaction[], download: Transaction[], total: number } {
   const mockTransactions: Transaction[] = [
     {
       id: '1',
@@ -454,7 +454,8 @@ export function generateMockTransactions(fileName: string): { preview: Transacti
     : Math.floor(Math.random() * 300) + 100   // Personal: 100-400 transactions
 
   return {
-    preview: mockTransactions.slice(0, 3), // Now returns 3 transactions for preview
+    preview: mockTransactions.slice(0, 3), // 3 transactions for preview display
+    download: mockTransactions.slice(0, 50), // 50 transactions for download
     total: baseTransactionCount
   }
 }

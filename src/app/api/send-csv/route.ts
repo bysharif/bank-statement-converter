@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate the mock transaction data (3 transactions for preview)
+    // Generate the mock transaction data (50 transactions for preview)
     const mockData = generateMockTransactions(fileName)
-    const csvContent = generateCSVContent(mockData.preview)
+    const csvContent = generateCSVContent(mockData.download)
 
     // Create CSV file as attachment
     const csvBuffer = Buffer.from(csvContent, 'utf-8')
@@ -40,13 +40,13 @@ export async function POST(request: NextRequest) {
             <p style="color: #475569; line-height: 1.6;">
               Thanks for using <strong>convert-bankstatement.com</strong>! We've processed your file
               <strong>${fileName}</strong> and attached your FREE preview containing the first
-              <strong>3 transactions</strong>.
+              <strong>50 transactions</strong>.
             </p>
 
             <div style="background: white; padding: 20px; border-radius: 6px; border: 1px solid #e2e8f0; margin: 20px 0;">
               <h3 style="color: #1e293b; margin-top: 0;">📊 What's included:</h3>
               <ul style="color: #475569; line-height: 1.8;">
-                <li><strong>3 transactions</strong> from your bank statement</li>
+                <li><strong>50 transactions</strong> from your bank statement</li>
                 <li><strong>CSV format</strong> - ready for Excel, QuickBooks, etc.</li>
                 <li><strong>Properly formatted</strong> dates, amounts, and descriptions</li>
                 <li><strong>GDPR compliant</strong> - your data is processed securely</li>
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       emailId: emailResult.data?.id,
-      transactionCount: mockData.preview.length,
+      transactionCount: mockData.download.length,
       totalTransactions: mockData.total,
       fileName: attachmentFileName
     })
