@@ -1,17 +1,24 @@
 'use client'
 
-import { FileText, Upload, Shield, Zap, Download, CheckCircle } from "lucide-react"
+import { FileText, Upload, Shield, Zap, Download, CheckCircle, ArrowLeft } from "lucide-react"
 import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { BankCarousel } from "./bank-carousel"
+import { SignupModal } from "@/components/shared/signup-modal"
+import { EmailDownloadModal } from "@/components/shared/email-download-modal"
+import { generateMockTransactions, generateCSVContent, downloadCSV } from "@/lib/csv-utils"
 
 export function HeroSectionV3() {
   const [isDragOver, setIsDragOver] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [currentWord, setCurrentWord] = useState(0)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
+  const [previewData, setPreviewData] = useState<{ preview: any[], total: number } | null>(null)
+  const [animatedCount, setAnimatedCount] = useState(0)
 
   const rotatingWords = ['accuracy', 'efficiency', 'precision', 'speed']
 
@@ -21,6 +28,33 @@ export function HeroSectionV3() {
     }, 3000)
     return () => clearInterval(interval)
   }, [])
+
+  // Animate counting when file is uploaded
+  useEffect(() => {
+    if (uploadedFile) {
+      const mockData = generateMockTransactions(uploadedFile.name)
+      const targetCount = mockData.total
+      const duration = 2000 // 2 seconds
+      const steps = 50
+      const stepTime = duration / steps
+      const increment = targetCount / steps
+
+      let currentCount = 0
+      const timer = setInterval(() => {
+        currentCount += increment
+        if (currentCount >= targetCount) {
+          setAnimatedCount(targetCount)
+          clearInterval(timer)
+        } else {
+          setAnimatedCount(Math.floor(currentCount))
+        }
+      }, stepTime)
+
+      return () => clearInterval(timer)
+    } else {
+      setAnimatedCount(0)
+    }
+  }, [uploadedFile])
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -46,6 +80,33 @@ export function HeroSectionV3() {
     if (files && files.length > 0) {
       setUploadedFile(files[0])
     }
+  }
+
+  const handleDownloadCSV = () => {
+    if (uploadedFile) {
+      // Show email modal to collect email for CSV delivery
+      setIsEmailModalOpen(true)
+    }
+  }
+
+  const handleEmailDownload = (email: string) => {
+    // Generate CSV and download it locally while also "sending" to email
+    if (uploadedFile) {
+      // Generate mock data and CSV content
+      const mockData = generateMockTransactions(uploadedFile.name)
+      const csvContent = generateCSVContent(mockData.preview)
+
+      // Download CSV file locally
+      const fileName = uploadedFile.name.replace(/\.[^/.]+$/, '') + '_preview.csv'
+      downloadCSV(csvContent, fileName)
+
+      // Mock email sending process
+      console.log(`Sending preview to ${email} for file: ${uploadedFile.name}`)
+    }
+  }
+
+  const handleUpgrade = () => {
+    setIsModalOpen(true)
   }
 
   return (
@@ -164,63 +225,134 @@ export function HeroSectionV3() {
                 </Card>
               </div>
 
-              {/* Central Upload */}
+              {/* Central Upload/Preview */}
               <div className="lg:col-span-6">
                 <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 lg:p-8">
-              {/* Upload Area */}
-              <div
-                className={`relative border-2 border-dashed rounded-2xl p-8 lg:p-10 text-center transition-all duration-500 ${
-                  isDragOver
-                    ? 'border-uk-blue-400 bg-uk-blue-50 scale-105'
-                    : uploadedFile
-                    ? 'border-uk-green-300 bg-uk-green-50'
-                    : 'border-gray-200 bg-gray-50 hover:border-uk-blue-300 hover:bg-uk-blue-50/50 hover:scale-102'
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <input
-                  type="file"
-                  id="file-upload"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  accept=".pdf,.csv,.xlsx,.xls"
-                  onChange={handleFileChange}
-                />
+                  {/* Upload Mode */}
+                  <div
+                      className={`relative border-2 border-dashed rounded-2xl p-8 lg:p-10 text-center transition-all duration-500 ${
+                        isDragOver
+                          ? 'border-uk-blue-400 bg-uk-blue-50 scale-105'
+                          : uploadedFile
+                          ? 'border-uk-green-300 bg-uk-green-50'
+                          : 'border-gray-200 bg-gray-50 hover:border-uk-blue-300 hover:bg-uk-blue-50/50 hover:scale-102'
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      {!uploadedFile && (
+                        <input
+                          type="file"
+                          id="file-upload"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          accept=".pdf,.csv,.xlsx,.xls"
+                          onChange={handleFileChange}
+                        />
+                      )}
 
-                {uploadedFile ? (
-                  <div className="space-y-6">
-                    <div className="w-20 h-20 bg-uk-green-100 rounded-2xl flex items-center justify-center mx-auto">
-                      <CheckCircle className="w-10 h-10 text-uk-green-600" />
+                      {uploadedFile ? (
+                        <div className="space-y-3">
+                          {/* Header */}
+                          <div className="flex items-center justify-between">
+                            <Button
+                              variant="ghost"
+                              onClick={() => setUploadedFile(null)}
+                              className="text-gray-500 hover:text-gray-700 p-1 h-7"
+                            >
+                              <ArrowLeft className="w-3 h-3 mr-1" />
+                              Back to upload
+                            </Button>
+                            <Badge variant="outline" className="text-xs px-2 py-1">
+                              3 of {animatedCount > 0 ? animatedCount : '...'} transactions
+                            </Badge>
+                          </div>
+
+                          {/* Preview Header */}
+                          <div className="text-center">
+                            <div className="w-8 h-8 bg-uk-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                              <FileText className="w-4 h-4 text-uk-blue-600" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">Free Preview</h3>
+                            <p className="text-xs text-gray-600">
+                              Showing first 3 transactions from <span className="font-medium">{uploadedFile.name}</span>
+                            </p>
+                          </div>
+
+                          {/* Mini Transaction List */}
+                          <div className="bg-gray-50 rounded-lg p-2 space-y-1">
+                            {(() => {
+                              const mockData = generateMockTransactions(uploadedFile.name)
+                              return mockData.preview.slice(0, 3).map((transaction, index) => (
+                                <div key={index} className="flex items-center justify-between bg-white rounded-md p-2 shadow-sm">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${
+                                      transaction.type === 'credit' ? 'bg-uk-green-500' : 'bg-red-500'
+                                    }`} />
+                                    <div>
+                                      <p className="font-medium text-gray-900 text-xs truncate max-w-[120px]">
+                                        {transaction.description}
+                                      </p>
+                                      <p className="text-[10px] text-gray-500">
+                                        {new Date(transaction.date).toLocaleDateString('en-GB', {
+                                          day: '2-digit',
+                                          month: 'short'
+                                        })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className={`font-semibold text-xs ${
+                                      transaction.type === 'credit' ? 'text-uk-green-600' : 'text-red-600'
+                                    }`}>
+                                      {transaction.type === 'credit' ? '+' : '-'}£{Math.abs(transaction.amount).toFixed(2)}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))
+                            })()}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="space-y-2">
+                            <Button
+                              className="bg-uk-blue-600 hover:bg-uk-blue-700 text-white px-4 py-2.5 text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all w-full min-h-[36px] flex items-center justify-center"
+                              onClick={handleDownloadCSV}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download preview CSV
+                            </Button>
+
+                            <Button
+                              onClick={handleUpgrade}
+                              className="w-full bg-uk-green-600 hover:bg-uk-green-700 text-white px-4 py-2.5 text-sm font-medium rounded-lg shadow-md hover:shadow-lg transition-all min-h-[36px] flex items-center justify-center"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Get all {animatedCount > 0 ? animatedCount : '...'} transactions
+                            </Button>
+
+                            <p className="text-[10px] text-gray-500 text-center leading-tight">
+                              Upgrade for unlimited conversions and advanced features
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          <div className="w-20 h-20 bg-uk-blue-100 rounded-2xl flex items-center justify-center mx-auto">
+                            <Upload className="w-10 h-10 text-uk-blue-600" />
+                          </div>
+                          <div>
+                            <h3 className="text-2xl font-semibold text-gray-900 mb-2">Upload Your Statement</h3>
+                            <p className="text-gray-600">Drag and drop your file here, or click to browse</p>
+                          </div>
+                          <div className="flex justify-center gap-3">
+                            <Badge variant="outline" className="text-sm font-medium">PDF</Badge>
+                            <Badge variant="outline" className="text-sm font-medium">CSV</Badge>
+                            <Badge variant="outline" className="text-sm font-medium">Excel</Badge>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <h3 className="text-2xl font-semibold text-gray-900 mb-2">File Ready!</h3>
-                      <p className="text-gray-600 mb-1">{uploadedFile.name}</p>
-                      <p className="text-sm text-gray-500">{(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                    </div>
-                    <Link href="/convert">
-                      <Button size="lg" className="bg-uk-blue-600 hover:bg-uk-blue-700 text-white px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all">
-                        Process Statement
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="w-20 h-20 bg-uk-blue-100 rounded-2xl flex items-center justify-center mx-auto">
-                      <Upload className="w-10 h-10 text-uk-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-semibold text-gray-900 mb-2">Upload Your Statement</h3>
-                      <p className="text-gray-600">Drag and drop your file here, or click to browse</p>
-                    </div>
-                    <div className="flex justify-center gap-3">
-                      <Badge variant="outline" className="text-sm font-medium">PDF</Badge>
-                      <Badge variant="outline" className="text-sm font-medium">CSV</Badge>
-                      <Badge variant="outline" className="text-sm font-medium">Excel</Badge>
-                    </div>
-                  </div>
-                )}
-              </div>
                 </div>
               </div>
 
@@ -336,6 +468,22 @@ export function HeroSectionV3() {
 
         </div>
       </div>
+
+      <SignupModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        planName="Professional"
+        planPrice="£19"
+        planType="professional"
+      />
+
+      <EmailDownloadModal
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        fileName={uploadedFile?.name || ''}
+        transactionCount={animatedCount}
+        onDownload={handleEmailDownload}
+      />
     </section>
   )
 }

@@ -2,8 +2,8 @@
 
 import { ChevronLeft } from "lucide-react";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { Navigation } from '@/components/navigation';
-import { Footer } from '@/components/footer';
+import { Navigation } from '@/components/landing/navigation';
+import { Footer } from '@/components/landing/footer';
 import Link from 'next/link';
 
 export default function BlogPost() {

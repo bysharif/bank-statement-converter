@@ -3,8 +3,8 @@
 import { ArrowRight, Calendar, User, Tag } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Navigation } from '@/components/navigation';
-import { Footer } from '@/components/footer';
+import { Navigation } from '@/components/landing/navigation';
+import { Footer } from '@/components/landing/footer';
 import Link from 'next/link';
 
 interface Post {

@@ -1,18 +1,12 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Upload, FileText, CheckCircle2, XCircle, Clock, Download, Trash2 } from "lucide-react"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
 import { ProcessingJob } from '@/types/dashboard'
 
 // Mock data for processing queue
@@ -295,32 +289,15 @@ function ExportOptions() {
 
 export default function ConvertPage() {
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="px-4 lg:px-6">
-                <FileUploadZone />
-              </div>
+    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+      <div className="px-4 lg:px-6">
+        <FileUploadZone />
+      </div>
 
-              <div className="grid gap-4 md:gap-6 lg:grid-cols-2 px-4 lg:px-6">
-                <ProcessingQueue />
-                <ExportOptions />
-              </div>
-            </div>
-          </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2 px-4 lg:px-6">
+        <ProcessingQueue />
+        <ExportOptions />
+      </div>
+    </div>
   )
 }

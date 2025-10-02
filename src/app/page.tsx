@@ -1,11 +1,11 @@
-import { Navigation } from '@/components/navigation'
-import { Footer } from '@/components/footer'
-import { HeroSectionV3 } from '@/components/hero-section-v3'
-import { HowItWorksNew } from '@/components/how-it-works-new'
-import { TestimonialsSection } from '@/components/testimonials-section'
-import { PricingSection } from '@/components/pricing-section'
-import { BlogSection } from '@/components/blog-section'
-import { CTASection } from '@/components/cta-section'
+import { Navigation } from '@/components/landing/navigation'
+import { Footer } from '@/components/landing/footer'
+import { HeroSectionV3 } from '@/components/landing/hero-section-v3'
+import { HowItWorksNew } from '@/components/landing/how-it-works-new'
+import { TestimonialsSection } from '@/components/landing/testimonials-section'
+import { PricingSection } from '@/components/landing/pricing-section'
+import { BlogSection } from '@/components/landing/blog-section'
+import { CTASection } from '@/components/landing/cta-section'
 
 export default function HomePage() {
   return (

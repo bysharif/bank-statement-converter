@@ -5,7 +5,7 @@ import { Menu, X, ExternalLink, Zap, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
-import { SignupModal } from '@/components/signup-modal'
+import { SignupModal } from '@/components/shared/signup-modal'
 
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)

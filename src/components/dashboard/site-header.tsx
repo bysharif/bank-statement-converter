@@ -14,7 +14,7 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
-import { CompanyLogo } from "@/components/company-logo"
+import { CompanyLogo } from "@/components/shared/company-logo"
 
 export function SiteHeader() {
   return (

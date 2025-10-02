@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { FileText, Upload } from 'lucide-react'
-import { Navigation } from '@/components/navigation'
+import { Navigation } from '@/components/landing/navigation'
 
 export default function ConvertPage() {
   const [isDragOver, setIsDragOver] = useState(false)

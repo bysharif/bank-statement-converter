@@ -251,27 +251,6 @@ export default function SignupPage() {
             </div>
           </div>
 
-          {/* Features */}
-          <div className="mt-12 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-uk-blue-100 rounded-full flex items-center justify-center">
-                <Zap className="w-4 h-4 text-uk-blue-600" />
-              </div>
-              <span className="text-sm text-gray-700">Process bank statements 5-8x faster</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-uk-green-100 rounded-full flex items-center justify-center">
-                <Shield className="w-4 h-4 text-uk-green-600" />
-              </div>
-              <span className="text-sm text-gray-700">Bank-grade security & GDPR compliance</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-uk-blue-100 rounded-full flex items-center justify-center">
-                <Users className="w-4 h-4 text-uk-blue-600" />
-              </div>
-              <span className="text-sm text-gray-700">Trusted by 1200+ businesses across UK</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>

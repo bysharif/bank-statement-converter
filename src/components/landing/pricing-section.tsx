@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Check } from 'lucide-react'
-import { SignupModal } from '@/components/signup-modal'
+import { SignupModal } from '@/components/shared/signup-modal'
 
 export function PricingSection() {
   const [isAnnual, setIsAnnual] = useState(true)

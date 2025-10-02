@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { SignupModal } from "@/components/signup-modal"
+import { SignupModal } from "@/components/shared/signup-modal"
 
 export function HeroSection() {
   const [isModalOpen, setIsModalOpen] = useState(false)

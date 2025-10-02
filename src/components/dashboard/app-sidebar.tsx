@@ -14,10 +14,10 @@ import {
   Bot,
 } from "lucide-react"
 
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
-import { CompanyLogo } from "@/components/company-logo"
+import { NavMain } from "@/components/dashboard/nav-main"
+import { NavUser } from "@/components/dashboard/nav-user"
+import { TeamSwitcher } from "@/components/dashboard/team-switcher"
+import { CompanyLogo } from "@/components/shared/company-logo"
 import {
   Sidebar,
   SidebarContent,
