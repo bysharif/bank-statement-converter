@@ -8,17 +8,18 @@ interface Transaction {
   amount: number
 }
 
-interface BankStatement {
+interface ParsedBankStatement {
+  transactions: Transaction[]
+  fileName: string
+  totalTransactions: number
   bankName: string
   accountNumber?: string
   sortCode?: string
-  transactions: Transaction[]
-  totalTransactions: number
   detectedFormat: string
 }
 
 // Serverless-compatible PDF parser using pdf2json
-export async function parseServerlessBankStatement(buffer: Buffer, filename: string): Promise<BankStatement> {
+export async function parseServerlessBankStatement(buffer: Buffer, filename: string): Promise<ParsedBankStatement> {
   console.log('🔄 Starting serverless PDF parsing with pdf2json')
 
   try {
@@ -51,12 +52,13 @@ export async function parseServerlessBankStatement(buffer: Buffer, filename: str
     console.log(`💰 Parsed ${transactions.length} transactions`)
 
     return {
-      bankName,
       transactions,
+      fileName: filename,
       totalTransactions: transactions.length,
-      detectedFormat: 'pdf2json-serverless',
+      bankName,
       accountNumber: extractAccountNumber(extractedText),
-      sortCode: extractSortCode(extractedText)
+      sortCode: extractSortCode(extractedText),
+      detectedFormat: 'pdf2json-serverless'
     }
   } catch (error) {
     console.error('❌ Serverless PDF parsing failed:', error)

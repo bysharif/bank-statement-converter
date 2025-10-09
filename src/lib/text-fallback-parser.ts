@@ -6,16 +6,17 @@ interface Transaction {
   amount: number
 }
 
-interface BankStatement {
+interface ParsedBankStatement {
+  transactions: Transaction[]
+  fileName: string
+  totalTransactions: number
   bankName: string
   accountNumber?: string
   sortCode?: string
-  transactions: Transaction[]
-  totalTransactions: number
   detectedFormat: string
 }
 
-export async function parseTextFallback(buffer: Buffer, filename: string): Promise<BankStatement> {
+export async function parseTextFallback(buffer: Buffer, filename: string): Promise<ParsedBankStatement> {
   console.log('🔄 Using text fallback parser (no PDF dependencies)')
 
   try {
@@ -38,22 +39,24 @@ export async function parseTextFallback(buffer: Buffer, filename: string): Promi
       console.log('⚠️ No transactions found, providing sample data')
 
       return {
-        bankName,
         transactions: sampleTransactions,
+        fileName: filename,
         totalTransactions: sampleTransactions.length,
-        detectedFormat: 'text-fallback-sample',
+        bankName,
         accountNumber: '12345678',
-        sortCode: '12-34-56'
+        sortCode: '12-34-56',
+        detectedFormat: 'text-fallback-sample'
       }
     }
 
     return {
-      bankName,
       transactions,
+      fileName: filename,
       totalTransactions: transactions.length,
-      detectedFormat: 'text-fallback',
+      bankName,
       accountNumber: extractAccountNumber(text),
-      sortCode: extractSortCode(text)
+      sortCode: extractSortCode(text),
+      detectedFormat: 'text-fallback'
     }
   } catch (error) {
     console.error('❌ Text fallback parsing failed:', error)
@@ -63,12 +66,13 @@ export async function parseTextFallback(buffer: Buffer, filename: string): Promi
     const sampleTransactions = generateSampleTransactions(bankName)
 
     return {
-      bankName: bankName + ' (Demo)',
       transactions: sampleTransactions,
+      fileName: filename,
       totalTransactions: sampleTransactions.length,
-      detectedFormat: 'demo-fallback',
+      bankName: bankName + ' (Demo)',
       accountNumber: '12345678',
-      sortCode: '12-34-56'
+      sortCode: '12-34-56',
+      detectedFormat: 'demo-fallback'
     }
   }
 }
