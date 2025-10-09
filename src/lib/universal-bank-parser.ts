@@ -734,9 +734,9 @@ function parseBarclaysTransactions(text: string): Transaction[] {
                 !searchLine.match(/^(On|At|From)\s+\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i)) {
 
               // Look for clear merchant patterns
-              if (searchLine.match(/^(Card Payment to|Direct Debit to|Standing Order to|Transfer to|Transfer from|Received from|Payment to)\s+(.+)/i)) {
-                const match = searchLine.match(/^(Card Payment to|Direct Debit to|Standing Order to|Transfer to|Transfer from|Received from|Payment to)\s+(.+)/i)
-                foundMerchantName = match[0] // Include the full transaction type + merchant
+              const transactionMatch = searchLine.match(/^(Card Payment to|Direct Debit to|Standing Order to|Transfer to|Transfer from|Received from|Payment to)\s+(.+)/i)
+              if (transactionMatch) {
+                foundMerchantName = transactionMatch[0] // Include the full transaction type + merchant
                 break
               }
               // Look for merchant names (not just generic words)
