@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  serverExternalPackages: ['pdf-parse'],
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Handle pdf-parse and its dependencies for server-side only
