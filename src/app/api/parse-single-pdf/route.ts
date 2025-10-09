@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseUniversalBankStatement } from '@/lib/universal-bank-parser'
+import { parseServerlessBankStatement } from '@/lib/serverless-bank-parser'
 import { generateCSVContent } from '@/lib/csv-utils'
 
 export async function POST(request: NextRequest) {
@@ -27,8 +28,16 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // Parse the PDF using universal bank parser
-    const statement = await parseUniversalBankStatement(buffer, file.name)
+    // Try main parser first, fall back to serverless parser
+    let statement
+    try {
+      console.log('🚀 Attempting main PDF parser (pdf-parse)')
+      statement = await parseUniversalBankStatement(buffer, file.name)
+    } catch (mainParserError) {
+      console.log('⚠️ Main parser failed, trying serverless fallback (pdf2json)')
+      console.error('Main parser error:', mainParserError)
+      statement = await parseServerlessBankStatement(buffer, file.name)
+    }
 
     console.log(`Parsed ${statement.totalTransactions} transactions from ${statement.bankName} statement: ${file.name}`)
 
