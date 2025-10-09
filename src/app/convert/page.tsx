@@ -1,12 +1,68 @@
 'use client'
 
-import React, { useState } from 'react'
-import { FileText, Upload } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { FileText, Upload, Download, CheckCircle, ArrowLeft, Loader2 } from 'lucide-react'
 import { Navigation } from '@/components/landing/navigation'
 
 export default function ConvertPage() {
   const [isDragOver, setIsDragOver] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [previewData, setPreviewData] = useState<{ preview: any[], download: any[], total: number, csvContent?: string, bankName?: string, detectedFormat?: string } | null>(null)
+  const [parseError, setParseError] = useState<string | null>(null)
+
+  // Process single file when uploaded
+  useEffect(() => {
+    if (uploadedFiles.length === 1 && !previewData) {
+      processSingleFile(uploadedFiles[0])
+    } else if (uploadedFiles.length === 0) {
+      setPreviewData(null)
+      setParseError(null)
+    }
+  }, [uploadedFiles, previewData])
+
+  const processSingleFile = async (file: File) => {
+    console.log('🚀 Starting to process file:', file.name)
+    setIsProcessing(true)
+    setParseError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      console.log('📤 Sending request to /api/parse-single-pdf')
+      const response = await fetch('/api/parse-single-pdf', {
+        method: 'POST',
+        body: formData
+      })
+
+      const result = await response.json()
+      console.log('📥 Received response:', result)
+
+      if (response.ok) {
+        const newPreviewData = {
+          preview: result.preview,
+          download: result.download,
+          total: result.actualTransactionCount,
+          csvContent: result.csvContent,
+          bankName: result.bankName,
+          detectedFormat: result.detectedFormat
+        }
+        console.log('✅ Setting preview data:', newPreviewData)
+        setPreviewData(newPreviewData)
+        console.log(`Successfully parsed ${result.actualTransactionCount} transactions from ${file.name}`)
+      } else {
+        throw new Error(result.error || 'Failed to parse PDF')
+      }
+    } catch (error) {
+      console.error('❌ Error processing file:', error)
+      setParseError(error instanceof Error ? error.message : 'Failed to process PDF')
+      setPreviewData(null)
+    } finally {
+      console.log('🏁 Finished processing, setting isProcessing to false')
+      setIsProcessing(false)
+    }
+  }
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -21,15 +77,50 @@ export default function ConvertPage() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(false)
-    const files = Array.from(e.dataTransfer.files)
-    setUploadedFiles(files)
+    const files = Array.from(e.dataTransfer.files).filter(file => file.type === 'application/pdf')
+    console.log('📁 Files dropped:', files.map(f => f.name))
+    if (files.length > 0) {
+      setPreviewData(null)
+      setParseError(null)
+      setUploadedFiles(files.slice(0, 5)) // Limit to 5 files
+      console.log('📤 Set uploadedFiles to:', files.slice(0, 5).map(f => f.name))
+    }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    if (files) {
-      setUploadedFiles(Array.from(files))
+    console.log('📁 Files selected:', files ? Array.from(files).map(f => f.name) : 'none')
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files).filter(file => file.type === 'application/pdf')
+      console.log('📁 PDF files filtered:', fileArray.map(f => f.name))
+      setPreviewData(null)
+      setParseError(null)
+      setUploadedFiles(fileArray.slice(0, 5)) // Limit to 5 files
+      console.log('📤 Set uploadedFiles to:', fileArray.slice(0, 5).map(f => f.name))
     }
+  }
+
+  const handleDownloadCSV = () => {
+    if (previewData?.csvContent && uploadedFiles[0]) {
+      const fileName = uploadedFiles[0].name.replace(/\.[^/.]+$/, '') + '_transactions.csv'
+      const blob = new Blob([previewData.csvContent], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      console.log(`Downloaded CSV: ${fileName}`)
+    }
+  }
+
+  const resetUpload = () => {
+    setUploadedFiles([])
+    setPreviewData(null)
+    setParseError(null)
+    setIsProcessing(false)
   }
 
   const handleBrowseClick = () => {
@@ -62,6 +153,8 @@ export default function ConvertPage() {
               className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 ${
                 isDragOver
                   ? 'border-uk-blue-400 bg-uk-blue-50'
+                  : uploadedFiles.length > 0 && previewData
+                  ? 'border-uk-green-300 bg-uk-green-50'
                   : uploadedFiles.length >= 5
                   ? 'border-yellow-400 bg-yellow-50'
                   : 'border-gray-300 bg-gray-50'
@@ -70,105 +163,147 @@ export default function ConvertPage() {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
-              <input
-                type="file"
-                id="file-upload"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                accept=".pdf"
-                multiple
-                onChange={handleFileChange}
-                disabled={uploadedFiles.length >= 5}
-              />
+              {uploadedFiles.length === 0 && (
+                <input
+                  type="file"
+                  id="file-upload"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  accept=".pdf"
+                  multiple
+                  onChange={handleFileChange}
+                  disabled={uploadedFiles.length >= 5}
+                />
+              )}
 
-              <div className="space-y-6">
-                <div className={`w-16 h-16 rounded-xl flex items-center justify-center mx-auto ${
-                  uploadedFiles.length >= 5 ? 'bg-yellow-500' : 'bg-uk-blue-600'
-                }`}>
-                  <FileText className="w-8 h-8 text-white" />
-                </div>
-
-                <div>
-                  <h3 className={`text-xl font-medium mb-2 ${
-                    uploadedFiles.length >= 5 ? 'text-yellow-700' : 'text-gray-900'
-                  }`}>
-                    {uploadedFiles.length >= 5 ? 'Free limit reached' : 'Drag & drop PDF files here'}
-                  </h3>
-                  {uploadedFiles.length >= 5 ? (
-                    <p className="text-yellow-600">
-                      Upgrade to process more than 5 files per month
-                    </p>
-                  ) : (
-                    <p className="text-gray-600">
-                      or{' '}
-                      <button
-                        onClick={handleBrowseClick}
-                        className="text-uk-blue-600 hover:text-uk-blue-700 underline font-medium"
-                      >
-                        browse files
-                      </button>
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2 text-sm text-gray-500">
-                  <p>Supported file types: PDF only</p>
-                  <p className={uploadedFiles.length >= 5 ? 'text-yellow-600 font-medium' : ''}>
-                    Maximum of 5 files allowed ({uploadedFiles.length}/5 used)
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Uploaded Files List */}
-            {uploadedFiles.length > 0 && (
-              <div className="mt-8">
-                <h4 className="text-lg font-medium text-gray-900 mb-4">Uploaded Files:</h4>
-                <div className="space-y-3">
-                  {uploadedFiles.map((file, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-100 rounded-lg">
-                      <FileText className="w-5 h-5 text-uk-blue-600" />
-                      <span className="flex-1 text-sm text-gray-900">{file.name}</span>
-                      <span className="text-xs text-gray-500">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </span>
+              {uploadedFiles.length > 0 && previewData ? (
+                // Preview Mode
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={resetUpload}
+                      className="flex items-center text-gray-500 hover:text-gray-700 text-sm"
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-1" />
+                      Upload different file
+                    </button>
+                    <div className="text-xs text-gray-600">
+                      {previewData.bankName} • {previewData.total} transactions
                     </div>
-                  ))}
-                </div>
+                  </div>
 
-                {uploadedFiles.length >= 5 ? (
-                  <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <h5 className="font-medium text-yellow-800 mb-2">Upgrade Required</h5>
-                    <p className="text-sm text-yellow-700 mb-3">
-                      You've reached the free limit of 5 files per month. Upgrade to Professional for unlimited conversions.
+                  <div className="w-12 h-12 bg-uk-green-500 rounded-xl flex items-center justify-center mx-auto">
+                    <CheckCircle className="w-6 h-6 text-white" />
+                  </div>
+
+                  <div>
+                    <h3 className="text-xl font-medium text-gray-900 mb-2">Processing Complete!</h3>
+                    <p className="text-gray-600 mb-4">
+                      Successfully parsed {previewData.total} transactions from {uploadedFiles[0].name}
                     </p>
-                    <button className="bg-uk-blue-600 hover:bg-uk-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-                      Upgrade to Professional
+                  </div>
+
+                  {/* Mini Transaction Preview */}
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                    <h4 className="text-sm font-medium text-gray-900">Preview (first 3 transactions):</h4>
+                    {previewData.preview.slice(0, 3).map((transaction, index) => (
+                      <div key={index} className="flex items-center justify-between bg-white rounded-md p-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            transaction.type === 'credit' ? 'bg-green-500' : 'bg-red-500'
+                          }`} />
+                          <span className="font-medium truncate max-w-[120px]">
+                            {transaction.description}
+                          </span>
+                        </div>
+                        <span className={`font-semibold ${
+                          transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {transaction.type === 'credit' ? '+' : '-'}£{Math.abs(transaction.amount).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={handleDownloadCSV}
+                    className="bg-uk-blue-600 hover:bg-uk-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 w-full"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download CSV ({previewData.total} transactions)
+                  </button>
+                </div>
+              ) : isProcessing ? (
+                // Processing Mode
+                <div className="space-y-6">
+                  <div className="w-16 h-16 bg-uk-blue-100 rounded-xl flex items-center justify-center mx-auto">
+                    <Loader2 className="w-8 h-8 text-uk-blue-600 animate-spin" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-medium text-gray-900 mb-2">Processing PDF...</h3>
+                    <p className="text-gray-600">
+                      Analyzing {uploadedFiles[0]?.name} for bank transactions
+                    </p>
+                  </div>
+                </div>
+              ) : parseError ? (
+                // Error Mode
+                <div className="space-y-6">
+                  <div className="w-16 h-16 bg-red-100 rounded-xl flex items-center justify-center mx-auto">
+                    <FileText className="w-8 h-8 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-medium text-red-700 mb-2">Processing Failed</h3>
+                    <p className="text-red-600 mb-4">{parseError}</p>
+                    <button
+                      onClick={resetUpload}
+                      className="text-uk-blue-600 hover:text-uk-blue-700 underline font-medium"
+                    >
+                      Try a different file
                     </button>
                   </div>
-                ) : (
-                  <div className="mt-6 p-4 bg-uk-blue-50 border border-uk-blue-200 rounded-lg">
-                    <h5 className="font-medium text-uk-blue-800 mb-2">Ready to Convert</h5>
-                    <p className="text-sm text-uk-blue-700 mb-3">
-                      Sign up for free to start converting your bank statements with 99.6% accuracy.
-                    </p>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => window.location.href = '/signup'}
-                        className="bg-uk-blue-600 hover:bg-uk-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                      >
-                        Sign Up Free
-                      </button>
-                      <button
-                        onClick={() => window.location.href = '/login'}
-                        className="border border-uk-blue-600 text-uk-blue-600 hover:bg-uk-blue-50 px-6 py-2 rounded-lg font-medium transition-colors"
-                      >
-                        Log In
-                      </button>
-                    </div>
+                </div>
+              ) : (
+                // Upload Mode
+                <div className="space-y-6">
+                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center mx-auto ${
+                    uploadedFiles.length >= 5 ? 'bg-yellow-500' : 'bg-uk-blue-600'
+                  }`}>
+                    <FileText className="w-8 h-8 text-white" />
                   </div>
-                )}
-              </div>
-            )}
+
+                  <div>
+                    <h3 className={`text-xl font-medium mb-2 ${
+                      uploadedFiles.length >= 5 ? 'text-yellow-700' : 'text-gray-900'
+                    }`}>
+                      {uploadedFiles.length >= 5 ? 'Free limit reached' : 'Drag & drop PDF files here'}
+                    </h3>
+                    {uploadedFiles.length >= 5 ? (
+                      <p className="text-yellow-600">
+                        Upgrade to process more than 5 files per month
+                      </p>
+                    ) : (
+                      <p className="text-gray-600">
+                        or{' '}
+                        <button
+                          onClick={handleBrowseClick}
+                          className="text-uk-blue-600 hover:text-uk-blue-700 underline font-medium"
+                        >
+                          browse files
+                        </button>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 text-sm text-gray-500">
+                    <p>Supported file types: PDF only</p>
+                    <p className={uploadedFiles.length >= 5 ? 'text-yellow-600 font-medium' : ''}>
+                      Maximum of 5 files allowed ({uploadedFiles.length}/5 used)
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* Footer Text */}

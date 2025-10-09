@@ -9,16 +9,20 @@ import { Card, CardContent } from "@/components/ui/card"
 import { BankCarousel } from "./bank-carousel"
 import { SignupModal } from "@/components/shared/signup-modal"
 import { EmailDownloadModal } from "@/components/shared/email-download-modal"
-import { generateMockTransactions, generateCSVContent, downloadCSV } from "@/lib/csv-utils"
+import { generateCSVContent, downloadCSV } from "@/lib/csv-utils"
 
 export function HeroSectionV3() {
   const [isDragOver, setIsDragOver] = useState(false)
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null) // Keep for backward compatibility
   const [currentWord, setCurrentWord] = useState(0)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false)
-  const [previewData, setPreviewData] = useState<{ preview: any[], total: number } | null>(null)
+  const [previewData, setPreviewData] = useState<{ preview: any[], download: any[], total: number, csvContent?: string, bankName?: string, detectedFormat?: string } | null>(null)
   const [animatedCount, setAnimatedCount] = useState(0)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [consolidatedData, setConsolidatedData] = useState<any>(null)
+  const [parseError, setParseError] = useState<string | null>(null)
 
   const rotatingWords = ['accuracy', 'efficiency', 'precision', 'speed']
 
@@ -29,11 +33,21 @@ export function HeroSectionV3() {
     return () => clearInterval(interval)
   }, [])
 
-  // Animate counting when file is uploaded
+  // Process single file when uploaded
   useEffect(() => {
-    if (uploadedFile) {
-      const mockData = generateMockTransactions(uploadedFile.name)
-      const targetCount = mockData.total
+    if (uploadedFiles.length === 1 && !previewData) {
+      processSingleFile(uploadedFiles[0])
+    } else if (uploadedFiles.length === 0) {
+      setPreviewData(null)
+      setAnimatedCount(0)
+      setParseError(null)
+    }
+  }, [uploadedFiles])
+
+  // Animate counting when preview data is available
+  useEffect(() => {
+    if (previewData) {
+      const targetCount = previewData.total
       const duration = 2000 // 2 seconds
       const steps = 50
       const stepTime = duration / steps
@@ -54,7 +68,7 @@ export function HeroSectionV3() {
     } else {
       setAnimatedCount(0)
     }
-  }, [uploadedFile])
+  }, [previewData])
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -69,16 +83,77 @@ export function HeroSectionV3() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(false)
-    const files = e.dataTransfer.files
+    const files = Array.from(e.dataTransfer.files).filter(file => file.type === 'application/pdf')
     if (files.length > 0) {
-      setUploadedFile(files[0])
+      // Reset previous data
+      setPreviewData(null)
+      setParseError(null)
+
+      // Limit to 10 files total
+      const newFiles = [...uploadedFiles, ...files].slice(0, 10)
+      setUploadedFiles(newFiles)
+      // Set the first file for backward compatibility
+      if (!uploadedFile) {
+        setUploadedFile(newFiles[0])
+      }
     }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files && files.length > 0) {
-      setUploadedFile(files[0])
+      const fileArray = Array.from(files).filter(file => file.type === 'application/pdf')
+
+      // Reset previous data
+      setPreviewData(null)
+      setParseError(null)
+
+      // Limit to 10 files total
+      const newFiles = [...uploadedFiles, ...fileArray].slice(0, 10)
+      setUploadedFiles(newFiles)
+      // Set the first file for backward compatibility
+      if (!uploadedFile) {
+        setUploadedFile(newFiles[0])
+      }
+    }
+  }
+
+  const processSingleFile = async (file: File) => {
+    setIsProcessing(true)
+    setParseError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/parse-single-pdf', {
+        method: 'POST',
+        body: formData
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        setPreviewData({
+          preview: result.preview,
+          download: result.download,
+          total: result.actualTransactionCount, // Use actual count from PDF
+          csvContent: result.csvContent,
+          bankName: result.bankName,
+          detectedFormat: result.detectedFormat
+        })
+        console.log(`Successfully parsed ${result.actualTransactionCount} transactions from ${file.name}`)
+      } else {
+        throw new Error(result.error || 'Failed to parse PDF')
+      }
+    } catch (error) {
+      console.error('Error processing file:', error)
+      setParseError(error instanceof Error ? error.message : 'Failed to process PDF')
+
+      // Don't show preview if parsing fails
+      setPreviewData(null)
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -90,18 +165,14 @@ export function HeroSectionV3() {
   }
 
   const handleEmailDownload = (email: string) => {
-    // Generate CSV and download it locally while also "sending" to email
-    if (uploadedFile) {
-      // Generate mock data and CSV content
-      const mockData = generateMockTransactions(uploadedFile.name)
-      const csvContent = generateCSVContent(mockData.download)
-
-      // Download CSV file locally
-      const fileName = uploadedFile.name.replace(/\.[^/.]+$/, '') + '_preview.csv'
-      downloadCSV(csvContent, fileName)
-
-      // Mock email sending process
-      console.log(`Sending preview to ${email} for file: ${uploadedFile.name}`)
+    // Only download if we have real parsed CSV data
+    if (previewData?.csvContent && uploadedFile) {
+      const fileName = uploadedFile.name.replace(/\.[^/.]+$/, '') + '_transactions.csv'
+      downloadCSV(previewData.csvContent, fileName)
+      console.log(`Downloaded real transactions CSV for ${email}`)
+    } else {
+      console.error('No parsed data available for download')
+      setParseError('No transaction data available for download')
     }
   }
 
@@ -275,15 +346,29 @@ export function HeroSectionV3() {
                             </div>
                             <h3 className="text-lg font-semibold text-gray-900 mb-1">Free Preview</h3>
                             <p className="text-xs text-gray-600">
-                              Showing first 3 transactions from <span className="font-medium">{uploadedFile.name}</span>
+                              Showing first 3 transactions from <span className="font-medium">{previewData?.bankName || 'Unknown'}</span> statement
                             </p>
+                            {previewData?.bankName && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Detected: {previewData.bankName} format
+                              </p>
+                            )}
                           </div>
 
                           {/* Mini Transaction List */}
                           <div className="bg-gray-50 rounded-lg p-2 space-y-1">
-                            {(() => {
-                              const mockData = generateMockTransactions(uploadedFile.name)
-                              return mockData.preview.slice(0, 3).map((transaction, index) => (
+                            {isProcessing ? (
+                              <div className="flex items-center justify-center py-4">
+                                <div className="animate-spin w-4 h-4 border-2 border-uk-blue-600 border-t-transparent rounded-full"></div>
+                                <span className="ml-2 text-xs text-gray-600">Processing PDF...</span>
+                              </div>
+                            ) : parseError ? (
+                              <div className="text-center py-4">
+                                <p className="text-xs text-red-600 mb-1">Failed to parse PDF</p>
+                                <p className="text-xs text-gray-500">{parseError}</p>
+                              </div>
+                            ) : previewData?.preview ? (
+                              previewData.preview.slice(0, 3).map((transaction, index) => (
                                 <div key={index} className="flex items-center justify-between bg-white rounded-md p-2 shadow-sm">
                                   <div className="flex items-center gap-2">
                                     <div className={`w-1.5 h-1.5 rounded-full ${
@@ -310,7 +395,11 @@ export function HeroSectionV3() {
                                   </div>
                                 </div>
                               ))
-                            })()}
+                            ) : (
+                              <div className="text-center py-4">
+                                <p className="text-xs text-gray-600">No transactions found</p>
+                              </div>
+                            )}
                           </div>
 
                           {/* Action Buttons */}
@@ -342,13 +431,13 @@ export function HeroSectionV3() {
                             <Upload className="w-10 h-10 text-uk-blue-600" />
                           </div>
                           <div>
-                            <h3 className="text-2xl font-semibold text-gray-900 mb-2">Upload Your Statement</h3>
-                            <p className="text-gray-600">Drag and drop your file here, or click to browse</p>
+                            <h3 className="text-2xl font-semibold text-gray-900 mb-2">Upload Your Statements</h3>
+                            <p className="text-gray-600">Drop up to 10 PDF bank statements for consolidated conversion</p>
                           </div>
                           <div className="flex justify-center gap-3">
-                            <Badge variant="outline" className="text-sm font-medium">PDF</Badge>
-                            <Badge variant="outline" className="text-sm font-medium">CSV</Badge>
-                            <Badge variant="outline" className="text-sm font-medium">Excel</Badge>
+                            <Badge variant="outline" className="text-sm font-medium">PDF Only</Badge>
+                            <Badge variant="outline" className="text-sm font-medium">Up to 10 files</Badge>
+                            <Badge variant="outline" className="text-sm font-medium">Consolidated CSV</Badge>
                           </div>
                         </div>
                       )}
@@ -404,11 +493,11 @@ export function HeroSectionV3() {
             </div>
 
             {/* Floating Success Indicator */}
-            {uploadedFile && (
+            {uploadedFiles.length > 0 && (
               <div className="absolute -top-4 -right-4 bg-uk-green-500 text-white px-6 py-3 rounded-xl shadow-lg animate-bounce">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <CheckCircle className="w-4 h-4" />
-                  Ready to convert!
+                  {uploadedFiles.length === 1 ? 'Ready to convert!' : `${uploadedFiles.length} files ready!`}
                 </div>
               </div>
             )}
