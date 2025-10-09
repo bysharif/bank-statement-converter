@@ -1,6 +1,7 @@
 import PDFParser from 'pdf2json'
 
 interface Transaction {
+  id: string
   date: string
   description: string
   type: 'credit' | 'debit'
@@ -226,6 +227,7 @@ function parseTransactionLine(line: string, allLines: string[], lineIndex: numbe
     description = description.replace(/\s+/g, ' ').substring(0, 100)
 
     return {
+      id: Math.random().toString(36).substr(2, 9),
       date,
       description,
       type,

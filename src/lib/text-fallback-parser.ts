@@ -1,4 +1,5 @@
 interface Transaction {
+  id: string
   date: string
   description: string
   type: 'credit' | 'debit'
@@ -156,7 +157,13 @@ function parseTransactionLine(line: string, bankName: string): Transaction | nul
 
     description = description.substring(0, 50)
 
-    return { date, description, type, amount }
+    return {
+      id: Math.random().toString(36).substr(2, 9),
+      date,
+      description,
+      type,
+      amount
+    }
   } catch (error) {
     return null
   }
@@ -184,6 +191,7 @@ function generateSampleTransactions(bankName: string): Transaction[] {
     const sample = sampleTransactions[i % sampleTransactions.length]
 
     transactions.push({
+      id: (i + 1).toString(),
       date: date.toISOString().split('T')[0],
       description: sample.desc,
       type: sample.type,
