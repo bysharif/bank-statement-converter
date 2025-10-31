@@ -39,7 +39,8 @@ export class AIBankStatementParser {
       const base64PDF = pdfBuffer.toString('base64');
       const prompt = this.createParsingPrompt();
 
-      const maxTokens = options?.maxTokens || (options?.userTier === 'FREE' ? 4096 : 16384);
+      // Use fewer tokens for FREE tier to speed up processing
+      const maxTokens = options?.maxTokens || (options?.userTier === 'FREE' ? 2048 : 16384);
 
       const response = await this.callClaudeWithRetry(base64PDF, prompt, maxTokens);
 
@@ -119,9 +120,9 @@ Date,Description,Debit,Credit,Balance
   ): Promise<any> {
     try {
       const message = await this.client.messages.create({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-3-5-haiku-20241022', // Fastest Claude model
         max_tokens: maxTokens,
-        temperature: 0,
+        temperature: 0, // Deterministic output for consistency
         messages: [
           {
             role: 'user',

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AIBankStatementParser } from '@/lib/ai-parser'
 
+// Increase timeout for large PDFs (requires Vercel Pro plan or higher)
+// Free tier: 10s, Pro: 60s default (can go up to 300s), Enterprise: 900s
 export const maxDuration = 60; // 60 seconds for AI processing
 
 // Free tier transaction limit
