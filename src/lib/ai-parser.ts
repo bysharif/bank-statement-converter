@@ -165,15 +165,62 @@ Date,Description,Debit,Credit,Balance
       throw new Error('No text content in response');
     }
 
-    let csv = textBlock.text.trim();
+    let text = textBlock.text.trim();
 
-    csv = csv.replace(/```csv\n?/g, '');
-    csv = csv.replace(/```\n?/g, '');
-    csv = csv.trim();
+    // Log the raw response for debugging
+    console.log('📝 Raw Claude response (first 500 chars):', text.substring(0, 500));
 
-    if (!csv.startsWith('Date,Description,Debit,Credit,Balance')) {
-      throw new Error('Invalid CSV format: missing expected headers');
+    // Remove markdown code blocks
+    text = text.replace(/```csv\n?/gi, '');
+    text = text.replace(/```\n?/g, '');
+    text = text.trim();
+
+    // Try to find CSV content - look for the header line
+    const headerPattern = /Date.*Description.*Debit.*Credit.*Balance/i;
+    const headerMatch = text.match(headerPattern);
+
+    let csv: string;
+
+    if (!headerMatch) {
+      // Claude sometimes omits the header - check if we have transaction data
+      console.log('⚠️ No header found, checking if we have transaction data...');
+
+      // Check if the text looks like CSV data (has commas and dates)
+      const datePattern = /\d{2}\/\d{2}\/\d{4}/;
+      if (text.match(datePattern) && text.includes(',')) {
+        console.log('✅ Found transaction data without header, adding header automatically');
+        // Add the header ourselves
+        csv = 'Date,Description,Debit,Credit,Balance\n' + text.trim();
+      } else {
+        console.error('❌ Could not find CSV header or transaction data in response');
+        console.error('Full response:', text);
+        throw new Error('Invalid CSV format: no recognizable data');
+      }
+    } else {
+      // Extract CSV starting from the header
+      const headerIndex = text.indexOf(headerMatch[0]);
+      csv = text.substring(headerIndex).trim();
     }
+
+    // Clean up any trailing text after the CSV
+    const lines = csv.split('\n');
+    const csvLines: string[] = [];
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
+
+      // Stop if we hit non-CSV content (lines without commas or dates)
+      if (csvLines.length > 0 && !trimmedLine.includes(',')) {
+        break;
+      }
+
+      csvLines.push(trimmedLine);
+    }
+
+    csv = csvLines.join('\n');
+
+    console.log(`✅ Extracted CSV with ${csvLines.length - 1} transaction lines`);
 
     return csv;
   }
