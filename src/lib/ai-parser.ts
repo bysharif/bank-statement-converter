@@ -85,31 +85,61 @@ export class AIBankStatementParser {
 4. **Column Rules:**
    - Date: Use DD/MM/YYYY format (e.g., 15/03/2024)
    - Description: Keep the full transaction description, remove extra whitespace
-   - Debit: Amount taken from account (negative transaction) - number only, no currency symbol
-   - Credit: Amount added to account (positive transaction) - number only, no currency symbol
+   - Debit: Money OUT of the account (payments, withdrawals, transfers out) - number only, no currency symbol
+   - Credit: Money INTO the account (deposits, salary, refunds, transfers in) - number only, no currency symbol
    - Balance: Running balance after transaction (if available, otherwise leave empty)
 
-5. **Data Rules:**
+5. **IMPORTANT - Debit vs Credit Classification:**
+   **DEBIT (Money Out):**
+   - Direct Debit to...
+   - Card Payment to...
+   - Payment to...
+   - Transfer to...
+   - Withdrawal
+   - Bill Payment
+   - Standing Order to...
+   - Cash withdrawal
+   - Fee, Charge, Interest charged
+
+   **CREDIT (Money In):**
+   - Received from...
+   - Salary from...
+   - Transfer from...
+   - Deposit
+   - Refund
+   - Cashback
+   - Interest received
+   - Payment received
+   - Income
+
+6. **Data Rules:**
    - All amounts must be to 2 decimal places (e.g., 123.45)
-   - If a transaction is a debit (money out), put the amount in the Debit column and leave Credit empty
-   - If a transaction is a credit (money in), put the amount in the Credit column and leave Debit empty
+   - If money goes OUT, put amount in Debit column, leave Credit empty
+   - If money comes IN, put amount in Credit column, leave Debit empty
    - Use empty values (not 0.00) for missing Debit/Credit
    - Wrap descriptions in quotes if they contain commas
    - Preserve the chronological order of transactions
+   - NEVER put the same transaction in both Debit and Credit columns
 
-6. **Handling Edge Cases:**
+7. **Handling Edge Cases:**
    - Skip header rows, footer information, account summaries
    - Skip opening/closing balance rows unless they're actual transactions
+   - "Start balance" or "Opening balance" = Credit (if positive)
    - If balance is not shown, leave the Balance column empty
    - Clean up descriptions: remove multiple spaces, newlines, special characters
 
 **Example Output:**
 Date,Description,Debit,Credit,Balance
-01/03/2024,"Direct Debit to THAMES WATER",45.23,,1234.56
-03/03/2024,"Salary from EMPLOYER",,2500.00,3689.33
-05/03/2024,"Card Payment at TESCO",67.89,,3621.44
+01/04/2024,"Start balance",,123.92,123.92
+03/04/2024,"Direct Debit to V12 Finance",38.70,,85.22
+03/04/2024,"Received from Employer",,2500.00,2585.22
+05/04/2024,"Card Payment at Tesco",67.89,,2517.33
 
-**Remember:** Return ONLY the CSV data. Start with the header row. No explanations, no markdown code blocks, just pure CSV.`;
+**Remember:**
+- Return ONLY the CSV data
+- Start with the header row
+- No explanations, no markdown code blocks
+- PAY CAREFUL ATTENTION to whether money is going IN (Credit) or OUT (Debit)`;
   }
 
   private async callClaudeWithRetry(

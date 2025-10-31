@@ -2,6 +2,7 @@ import { extractPDFWithCoordinates, ExtractedPDFData } from './fast-pdf-extracto
 import { detectTransactionTable, tableToRecords, DetectedTable } from './table-detector';
 import { detectBankType, BankDetectionResult, Transaction } from './universal-bank-parser';
 import { AIBankStatementParser, ParseOptions } from './ai-parser';
+import { validateTransactionData } from './transaction-validator';
 
 export interface HybridParseResult {
   success: boolean;
@@ -92,12 +93,20 @@ export class HybridBankParser {
         if (bankDetection.confidence >= 15) {
           console.log('   - Attempting pattern-based parsing...');
 
-          const transactions = await this.parseWithPatterns(pdfData, bankDetection);
+          let transactions = await this.parseWithPatterns(pdfData, bankDetection);
 
           if (transactions.length > 0) {
+            console.log(`✅ Layer 2 pattern matching complete`);
+            console.log(`   - Extracted ${transactions.length} transactions`);
+
+            // Validate and correct the data
+            console.log('🔧 Running post-processing validation...');
+            const validationStart = Date.now();
+            transactions = validateTransactionData(transactions);
+            console.log(`✅ Validation complete in ${Date.now() - validationStart}ms`);
+
             const processingTime = Date.now() - startTime;
 
-            console.log(`✅ Layer 2 complete in ${Date.now() - detectionStart}ms`);
             console.log(`✨ Fast parsing successful: ${transactions.length} transactions in ${processingTime}ms`);
 
             const csvContent = this.generateCSV(transactions);
@@ -136,11 +145,19 @@ export class HybridBankParser {
         throw new Error(aiResult.error || 'AI parsing failed');
       }
 
-      const aiTransactions = this.aiParser.parseCSVToTransactions(aiResult.csvContent) as Transaction[];
+      let aiTransactions = this.aiParser.parseCSVToTransactions(aiResult.csvContent) as Transaction[];
+
+      console.log(`✅ Layer 3 AI extraction complete in ${Date.now() - aiStart}ms`);
+      console.log(`   - Extracted ${aiTransactions.length} transactions`);
+
+      // Validate and correct the data
+      console.log('🔧 Running post-processing validation...');
+      const validationStart = Date.now();
+      aiTransactions = validateTransactionData(aiTransactions);
+      console.log(`✅ Validation complete in ${Date.now() - validationStart}ms`);
 
       const processingTime = Date.now() - startTime;
 
-      console.log(`✅ Layer 3 complete in ${Date.now() - aiStart}ms`);
       console.log(`✨ AI fallback successful: ${aiTransactions.length} transactions in ${processingTime}ms`);
 
       return {
