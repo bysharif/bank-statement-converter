@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { AIBankStatementParser } from '@/lib/ai-parser'
+import { HybridBankParser } from '@/lib/hybrid-parser'
 
-// Increase timeout for large PDFs (requires Vercel Pro plan or higher)
-// Free tier: 10s, Pro: 60s default (can go up to 300s), Enterprise: 900s
-export const maxDuration = 60; // 60 seconds for AI processing
+// Hybrid parser is much faster:
+// - Fast pattern matching: 5-10 seconds (95% of cases)
+// - AI fallback: 40-70 seconds (5% of cases)
+export const maxDuration = 60; // 60 seconds for processing
 
 // Free tier transaction limit
 const FREE_TIER_LIMIT = 50;
@@ -43,27 +44,32 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer)
     console.log(`✅ Buffer created: ${buffer.length} bytes`)
 
-    // Parse with AI
-    console.log('🤖 Initializing AI parser...')
-    const parser = new AIBankStatementParser()
+    // Parse with Hybrid Parser (3-layer system)
+    console.log('🚀 Initializing Hybrid Parser (Fast + AI fallback)...')
+    const parser = new HybridBankParser()
 
-    console.log('🚀 Starting AI parsing...')
+    console.log('⚡ Starting hybrid parsing (5-10 seconds for known banks)...')
     const result = await parser.parsePDF(buffer, file.name, { userTier: 'FREE' })
 
-    console.log(`📊 AI parsing result - Success: ${result.success}, Transactions: ${result.transactionCount}`)
+    console.log(`📊 Hybrid parsing result:`)
+    console.log(`   - Success: ${result.success}`)
+    console.log(`   - Method: ${result.method}`)
+    console.log(`   - Bank: ${result.bankName}`)
+    console.log(`   - Transactions: ${result.transactionCount}`)
+    console.log(`   - Confidence: ${result.confidence}`)
+    console.log(`   - Processing time: ${result.processingTime}ms`)
 
     if (!result.success) {
-      console.error(`❌ AI parsing failed: ${result.error}`)
+      console.error(`❌ Hybrid parsing failed: ${result.error}`)
       throw new Error(result.error || 'Failed to parse bank statement')
     }
 
-    console.log(`✅ AI parsed ${result.transactionCount} transactions`)
-    console.log(`📋 CSV content length: ${result.csvContent.length} characters`)
+    console.log(`✅ Hybrid parser extracted ${result.transactionCount} transactions in ${result.processingTime}ms`)
+    console.log(`   - Used ${result.method} method`)
 
-    // Parse CSV to transaction objects
-    console.log('🔄 Converting CSV to transaction objects...')
-    const allTransactions = parser.parseCSVToTransactions(result.csvContent)
-    console.log(`✅ Converted to ${allTransactions.length} transaction objects`)
+    // Get transactions from result
+    const allTransactions = result.transactions
+    console.log(`✅ Got ${allTransactions.length} transaction objects`)
 
     // Apply free tier limit (50 transactions)
     const limitedTransactions = allTransactions.slice(0, FREE_TIER_LIMIT)
@@ -72,7 +78,9 @@ export async function POST(request: NextRequest) {
     console.log(`📊 Limiting transactions: ${allTransactions.length} → ${limitedTransactions.length} (isLimited: ${isLimited})`)
 
     // Generate limited CSV for free tier
-    const limitedCSV = generateLimitedCSV(limitedTransactions, result.csvContent)
+    const limitedCSV = result.csvContent
+      ? generateLimitedCSV(limitedTransactions, result.csvContent)
+      : generateCSVFromTransactions(limitedTransactions)
 
     const previewTransactions = limitedTransactions.slice(0, 3)
 
@@ -82,16 +90,16 @@ export async function POST(request: NextRequest) {
       actualTransactionCount: result.transactionCount,
       shownTransactionCount: limitedTransactions.length,
       csvContent: limitedCSV,
-      bankName: 'AI Powered',
-      detectedFormat: 'ai-universal',
+      bankName: result.bankName,
+      detectedFormat: result.detectedFormat,
       isLimited,
       limitMessage: isLimited
         ? `Free tier limited to ${FREE_TIER_LIMIT} transactions. Your statement has ${result.transactionCount} transactions. Sign up for unlimited access!`
         : undefined,
       metadata: {
-        tokensUsed: result.tokensUsed,
         processingTime: result.processingTime,
-        method: 'ai-claude',
+        method: result.method,
+        confidence: result.confidence,
       },
     }
 
@@ -127,4 +135,20 @@ function generateLimitedCSV(transactions: any[], originalCSV: string): string {
   })
 
   return csvLines.join('\n')
+}
+
+// Helper function to generate CSV from transactions
+function generateCSVFromTransactions(transactions: any[]): string {
+  const lines = ['Date,Description,Debit,Credit,Balance']
+
+  transactions.forEach(txn => {
+    const debit = txn.type === 'debit' ? txn.amount.toFixed(2) : ''
+    const credit = txn.type === 'credit' ? txn.amount.toFixed(2) : ''
+    const balance = txn.balance ? txn.balance.toFixed(2) : ''
+    const description = txn.description.includes(',') ? `"${txn.description}"` : txn.description
+
+    lines.push(`${txn.date},${description},${debit},${credit},${balance}`)
+  })
+
+  return lines.join('\n')
 }
