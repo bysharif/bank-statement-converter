@@ -22,7 +22,7 @@ export default function ConvertPage() {
   }, [uploadedFiles, previewData])
 
   const processSingleFile = async (file: File) => {
-    console.log('🚀 Starting to process file:', file.name)
+    console.log('🚀 Starting to process file:', file.name, file.size, 'bytes')
     setIsProcessing(true)
     setParseError(null)
 
@@ -31,13 +31,26 @@ export default function ConvertPage() {
       formData.append('file', file)
 
       console.log('📤 Sending request to /api/parse-single-pdf')
+
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => {
+        console.error('⏱️ Request timeout after 65 seconds')
+        controller.abort()
+      }, 65000) // 65 seconds (slightly more than server timeout)
+
       const response = await fetch('/api/parse-single-pdf', {
         method: 'POST',
-        body: formData
+        body: formData,
+        signal: controller.signal
       })
 
+      clearTimeout(timeoutId)
+
+      console.log('📥 Response received:', response.status, response.statusText)
+
       const result = await response.json()
-      console.log('📥 Received response:', result)
+      console.log('📋 Response data:', result)
 
       if (response.ok) {
         const newPreviewData = {
@@ -52,11 +65,22 @@ export default function ConvertPage() {
         setPreviewData(newPreviewData)
         console.log(`Successfully parsed ${result.actualTransactionCount} transactions from ${file.name}`)
       } else {
-        throw new Error(result.error || 'Failed to parse PDF')
+        console.error('❌ API error:', result.error, result.details)
+        throw new Error(result.error || result.details || 'Failed to parse PDF')
       }
     } catch (error) {
       console.error('❌ Error processing file:', error)
-      setParseError(error instanceof Error ? error.message : 'Failed to process PDF')
+
+      let errorMessage = 'Failed to process PDF'
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timeout - PDF processing took too long. Try a smaller file or contact support.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+
+      setParseError(errorMessage)
       setPreviewData(null)
     } finally {
       console.log('🏁 Finished processing, setting isProcessing to false')

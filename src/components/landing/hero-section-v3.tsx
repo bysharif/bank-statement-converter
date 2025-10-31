@@ -119,6 +119,7 @@ export function HeroSectionV3() {
   }
 
   const processSingleFile = async (file: File) => {
+    console.log('🚀 Processing file:', file.name, file.size, 'bytes')
     setIsProcessing(true)
     setParseError(null)
 
@@ -126,14 +127,30 @@ export function HeroSectionV3() {
       const formData = new FormData()
       formData.append('file', file)
 
+      console.log('📤 Sending request to /api/parse-single-pdf')
+
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => {
+        console.error('⏱️ Request timeout after 65 seconds')
+        controller.abort()
+      }, 65000) // 65 seconds (slightly more than server timeout)
+
       const response = await fetch('/api/parse-single-pdf', {
         method: 'POST',
-        body: formData
+        body: formData,
+        signal: controller.signal
       })
 
+      clearTimeout(timeoutId)
+
+      console.log('📥 Response received:', response.status, response.statusText)
+
       const result = await response.json()
+      console.log('📋 Response data:', result)
 
       if (response.ok) {
+        console.log('✅ Parsing successful:', result.actualTransactionCount, 'transactions')
         setPreviewData({
           preview: result.preview,
           download: result.download,
@@ -144,15 +161,27 @@ export function HeroSectionV3() {
         })
         console.log(`Successfully parsed ${result.actualTransactionCount} transactions from ${file.name}`)
       } else {
-        throw new Error(result.error || 'Failed to parse PDF')
+        console.error('❌ API error:', result.error, result.details)
+        throw new Error(result.error || result.details || 'Failed to parse PDF')
       }
     } catch (error) {
-      console.error('Error processing file:', error)
-      setParseError(error instanceof Error ? error.message : 'Failed to process PDF')
+      console.error('❌ Error processing file:', error)
+
+      let errorMessage = 'Failed to process PDF'
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timeout - PDF processing took too long. Try a smaller file or contact support.'
+        } else {
+          errorMessage = error.message
+        }
+      }
+
+      setParseError(errorMessage)
 
       // Don't show preview if parsing fails
       setPreviewData(null)
     } finally {
+      console.log('🏁 Processing complete, setting isProcessing to false')
       setIsProcessing(false)
     }
   }
