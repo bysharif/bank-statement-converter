@@ -1,0 +1,249 @@
+import Anthropic from '@anthropic-ai/sdk';
+
+export interface AIParseResult {
+  success: boolean;
+  csvContent: string;
+  transactionCount: number;
+  error?: string;
+  tokensUsed?: number;
+  processingTime?: number;
+}
+
+export interface ParseOptions {
+  maxTokens?: number;
+  userTier?: 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'BUSINESS';
+}
+
+export class AIBankStatementParser {
+  private client: Anthropic;
+  private readonly MAX_RETRIES = 3;
+  private readonly TIMEOUT_MS = 60000;
+
+  constructor(apiKey?: string) {
+    this.client = new Anthropic({
+      apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
+    });
+  }
+
+  async parsePDF(
+    pdfBuffer: Buffer,
+    fileName?: string,
+    options?: ParseOptions
+  ): Promise<AIParseResult> {
+    const startTime = Date.now();
+
+    try {
+      console.log('🤖 Starting AI-powered PDF parsing...');
+      console.log(`📄 File: ${fileName || 'unknown'}, Size: ${pdfBuffer.length} bytes`);
+
+      const base64PDF = pdfBuffer.toString('base64');
+      const prompt = this.createParsingPrompt();
+
+      const maxTokens = options?.maxTokens || (options?.userTier === 'FREE' ? 4096 : 16384);
+
+      const response = await this.callClaudeWithRetry(base64PDF, prompt, maxTokens);
+
+      const csvContent = this.extractCSV(response.content);
+      const transactionCount = this.countTransactions(csvContent);
+
+      const processingTime = Date.now() - startTime;
+
+      console.log(`✅ AI parsing complete: ${transactionCount} transactions in ${processingTime}ms`);
+      console.log(`💰 Tokens used: ${response.usage.input_tokens} input, ${response.usage.output_tokens} output`);
+
+      return {
+        success: true,
+        csvContent,
+        transactionCount,
+        tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
+        processingTime,
+      };
+
+    } catch (error) {
+      console.error('❌ AI parsing failed:', error);
+      return {
+        success: false,
+        csvContent: '',
+        transactionCount: 0,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        processingTime: Date.now() - startTime,
+      };
+    }
+  }
+
+  private createParsingPrompt(): string {
+    return `You are an expert bank statement parser. Your task is to extract ALL transactions from this bank statement PDF and convert them into a CSV format.
+
+**CRITICAL REQUIREMENTS:**
+
+1. **Extract ALL transactions** - Do not skip any transactions, even if they seem unclear
+2. **CSV Format** - Return ONLY the CSV data, no explanations or additional text
+3. **Column Headers** (first row):
+   Date,Description,Debit,Credit,Balance
+
+4. **Column Rules:**
+   - Date: Use DD/MM/YYYY format (e.g., 15/03/2024)
+   - Description: Keep the full transaction description, remove extra whitespace
+   - Debit: Amount taken from account (negative transaction) - number only, no currency symbol
+   - Credit: Amount added to account (positive transaction) - number only, no currency symbol
+   - Balance: Running balance after transaction (if available, otherwise leave empty)
+
+5. **Data Rules:**
+   - All amounts must be to 2 decimal places (e.g., 123.45)
+   - If a transaction is a debit (money out), put the amount in the Debit column and leave Credit empty
+   - If a transaction is a credit (money in), put the amount in the Credit column and leave Debit empty
+   - Use empty values (not 0.00) for missing Debit/Credit
+   - Wrap descriptions in quotes if they contain commas
+   - Preserve the chronological order of transactions
+
+6. **Handling Edge Cases:**
+   - Skip header rows, footer information, account summaries
+   - Skip opening/closing balance rows unless they're actual transactions
+   - If balance is not shown, leave the Balance column empty
+   - Clean up descriptions: remove multiple spaces, newlines, special characters
+
+**Example Output:**
+Date,Description,Debit,Credit,Balance
+01/03/2024,"Direct Debit to THAMES WATER",45.23,,1234.56
+03/03/2024,"Salary from EMPLOYER",,2500.00,3689.33
+05/03/2024,"Card Payment at TESCO",67.89,,3621.44
+
+**Remember:** Return ONLY the CSV data. Start with the header row. No explanations, no markdown code blocks, just pure CSV.`;
+  }
+
+  private async callClaudeWithRetry(
+    base64PDF: string,
+    prompt: string,
+    maxTokens: number,
+    retryCount = 0
+  ): Promise<any> {
+    try {
+      const message = await this.client.messages.create({
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: maxTokens,
+        temperature: 0,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'base64',
+                  media_type: 'application/pdf',
+                  data: base64PDF,
+                },
+              },
+              {
+                type: 'text',
+                text: prompt,
+              },
+            ],
+          },
+        ],
+      });
+
+      return message;
+
+    } catch (error: any) {
+      if (retryCount < this.MAX_RETRIES) {
+        if (error.status === 429 || error.status === 529) {
+          const delay = Math.pow(2, retryCount) * 1000;
+          console.log(`⏳ Rate limited, retrying in ${delay}ms...`);
+          await this.sleep(delay);
+          return this.callClaudeWithRetry(base64PDF, prompt, maxTokens, retryCount + 1);
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  private extractCSV(content: any[]): string {
+    const textBlock = content.find((block: any) => block.type === 'text');
+    if (!textBlock) {
+      throw new Error('No text content in response');
+    }
+
+    let csv = textBlock.text.trim();
+
+    csv = csv.replace(/```csv\n?/g, '');
+    csv = csv.replace(/```\n?/g, '');
+    csv = csv.trim();
+
+    if (!csv.startsWith('Date,Description,Debit,Credit,Balance')) {
+      throw new Error('Invalid CSV format: missing expected headers');
+    }
+
+    return csv;
+  }
+
+  private countTransactions(csv: string): number {
+    const lines = csv.split('\n').filter(line => line.trim());
+    return Math.max(0, lines.length - 1);
+  }
+
+  parseCSVToTransactions(csv: string) {
+    const lines = csv.split('\n');
+    const transactions = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      const parts = this.parseCSVLine(line);
+      if (parts.length < 5) continue;
+
+      const [date, description, debit, credit, balance] = parts;
+
+      const isDebit = debit && debit.trim() !== '';
+      const amount = isDebit ? parseFloat(debit) : parseFloat(credit);
+
+      transactions.push({
+        id: `txn_${i}`,
+        date,
+        description: description.replace(/^"|"$/g, ''),
+        amount,
+        type: isDebit ? 'debit' : 'credit',
+        balance: balance ? parseFloat(balance) : undefined,
+      });
+    }
+
+    return transactions;
+  }
+
+  private parseCSVLine(line: string): string[] {
+    const parts: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        parts.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    parts.push(current.trim());
+    return parts;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+}
+
+export async function parseStatementWithAI(
+  pdfBuffer: Buffer,
+  fileName?: string,
+  options?: ParseOptions
+): Promise<AIParseResult> {
+  const parser = new AIBankStatementParser();
+  return parser.parsePDF(pdfBuffer, fileName, options);
+}
