@@ -23,6 +23,8 @@ export function HeroSectionV3() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [consolidatedData, setConsolidatedData] = useState<any>(null)
   const [parseError, setParseError] = useState<string | null>(null)
+  const [processingStage, setProcessingStage] = useState<string>('')
+  const [processingProgress, setProcessingProgress] = useState(0)
 
   const rotatingWords = ['accuracy', 'efficiency', 'precision', 'speed']
 
@@ -122,6 +124,8 @@ export function HeroSectionV3() {
     console.log('🚀 Processing file:', file.name, file.size, 'bytes')
     setIsProcessing(true)
     setParseError(null)
+    setProcessingProgress(0)
+    setProcessingStage('Uploading PDF...')
 
     try {
       const formData = new FormData()
@@ -129,10 +133,27 @@ export function HeroSectionV3() {
 
       console.log('📤 Sending request to /api/parse-single-pdf')
 
+      // Simulate progress stages
+      const progressInterval = setInterval(() => {
+        setProcessingProgress(prev => {
+          if (prev < 90) return prev + 1
+          return prev
+        })
+      }, 600) // Update every 600ms for ~60 second process
+
+      // Stage updates
+      setTimeout(() => setProcessingStage('Analyzing document structure...'), 2000)
+      setTimeout(() => setProcessingStage('Extracting text from PDF...'), 8000)
+      setTimeout(() => setProcessingStage('Identifying transaction table...'), 15000)
+      setTimeout(() => setProcessingStage('Parsing transactions...'), 25000)
+      setTimeout(() => setProcessingStage('Validating data quality...'), 40000)
+      setTimeout(() => setProcessingStage('Finalizing results...'), 50000)
+
       // Add timeout to prevent hanging requests
       const controller = new AbortController()
       const timeoutId = setTimeout(() => {
         console.error('⏱️ Request timeout after 65 seconds')
+        clearInterval(progressInterval)
         controller.abort()
       }, 65000) // 65 seconds (slightly more than server timeout)
 
@@ -143,6 +164,10 @@ export function HeroSectionV3() {
       })
 
       clearTimeout(timeoutId)
+      clearInterval(progressInterval)
+
+      setProcessingProgress(95)
+      setProcessingStage('Processing complete!')
 
       console.log('📥 Response received:', response.status, response.statusText)
 
@@ -151,6 +176,13 @@ export function HeroSectionV3() {
 
       if (response.ok) {
         console.log('✅ Parsing successful:', result.actualTransactionCount, 'transactions')
+
+        setProcessingProgress(100)
+        setProcessingStage('Success!')
+
+        // Small delay to show completion
+        await new Promise(resolve => setTimeout(resolve, 500))
+
         setPreviewData({
           preview: result.preview,
           download: result.download,
@@ -162,6 +194,7 @@ export function HeroSectionV3() {
         console.log(`Successfully parsed ${result.actualTransactionCount} transactions from ${file.name}`)
       } else {
         console.error('❌ API error:', result.error, result.details)
+        clearInterval(progressInterval)
         throw new Error(result.error || result.details || 'Failed to parse PDF')
       }
     } catch (error) {
@@ -177,12 +210,12 @@ export function HeroSectionV3() {
       }
 
       setParseError(errorMessage)
-
-      // Don't show preview if parsing fails
       setPreviewData(null)
     } finally {
       console.log('🏁 Processing complete, setting isProcessing to false')
       setIsProcessing(false)
+      setProcessingProgress(0)
+      setProcessingStage('')
     }
   }
 
@@ -387,9 +420,33 @@ export function HeroSectionV3() {
                           {/* Mini Transaction List */}
                           <div className="bg-gray-50 rounded-lg p-2 space-y-1">
                             {isProcessing ? (
-                              <div className="flex items-center justify-center py-4">
-                                <div className="animate-spin w-4 h-4 border-2 border-uk-blue-600 border-t-transparent rounded-full"></div>
-                                <span className="ml-2 text-xs text-gray-600">Processing PDF...</span>
+                              <div className="py-6 px-4 space-y-3">
+                                {/* Progress Bar */}
+                                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                  <div
+                                    className="bg-uk-blue-600 h-full transition-all duration-500 ease-out"
+                                    style={{ width: `${processingProgress}%` }}
+                                  />
+                                </div>
+
+                                {/* Status Text */}
+                                <div className="flex items-center justify-center">
+                                  <div className="animate-spin w-4 h-4 border-2 border-uk-blue-600 border-t-transparent rounded-full"></div>
+                                  <span className="ml-2 text-xs text-gray-700 font-medium">{processingStage}</span>
+                                </div>
+
+                                {/* Progress Percentage */}
+                                <div className="text-center text-xs text-gray-500">
+                                  {processingProgress}% complete
+                                </div>
+
+                                {/* Estimated Time */}
+                                <div className="text-center text-xs text-gray-400">
+                                  {processingProgress < 30 && 'Estimated time: 45-60 seconds'}
+                                  {processingProgress >= 30 && processingProgress < 70 && 'About 30 seconds remaining...'}
+                                  {processingProgress >= 70 && processingProgress < 90 && 'Almost done...'}
+                                  {processingProgress >= 90 && 'Just a moment...'}
+                                </div>
                               </div>
                             ) : parseError ? (
                               <div className="text-center py-4">
