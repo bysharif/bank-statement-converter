@@ -52,57 +52,81 @@ export class HybridBankParser {
       console.log('📄 Layer 1: Fast PDF extraction with pdf2json...');
       const extractionStart = Date.now();
 
-      const pdfData = await extractPDFWithCoordinates(buffer);
+      let pdfData;
+      let skipPatternMatching = false;
 
-      console.log(`✅ Layer 1 complete in ${Date.now() - extractionStart}ms`);
-      console.log(`   - Pages: ${pdfData.pages.length}`);
-      console.log(`   - Text length: ${pdfData.fullText.length} characters`);
-
-      // ============================================
-      // LAYER 2: Pattern Matching (1-2 seconds)
-      // ============================================
-      console.log('🔍 Layer 2: Bank detection and pattern matching...');
-      const detectionStart = Date.now();
-
-      const bankDetection = detectBankType(pdfData.fullText);
-
-      console.log(`   - Detected bank: ${bankDetection.bankName}`);
-      console.log(`   - Confidence: ${bankDetection.confidence}`);
-      console.log(`   - Format: ${bankDetection.format}`);
-
-      // Try pattern-based parsing if confidence is high
-      if (bankDetection.confidence >= 15) {
-        console.log('   - Attempting pattern-based parsing...');
-
-        const transactions = await this.parseWithPatterns(pdfData, bankDetection);
-
-        if (transactions.length > 0) {
-          const processingTime = Date.now() - startTime;
-
-          console.log(`✅ Layer 2 complete in ${Date.now() - detectionStart}ms`);
-          console.log(`✨ Fast parsing successful: ${transactions.length} transactions in ${processingTime}ms`);
-
-          const csvContent = this.generateCSV(transactions);
-
-          return {
-            success: true,
-            transactions,
-            transactionCount: transactions.length,
-            bankName: bankDetection.bankName,
-            detectedFormat: bankDetection.format,
-            method: 'fast-pattern',
-            confidence: bankDetection.confidence,
-            processingTime,
-            csvContent,
-          };
+      try {
+        pdfData = await extractPDFWithCoordinates(buffer);
+      } catch (extractionError: any) {
+        // Check if it's an encryption error
+        if (extractionError.message?.includes('encryption') ||
+            extractionError.message?.includes('Unsupported') ||
+            extractionError.message?.includes('password')) {
+          console.log('⚠️ Layer 1 failed: PDF is encrypted/password-protected');
+          console.log('⚡ Skipping to AI fallback (Layer 3) - Claude can handle encrypted PDFs');
+          skipPatternMatching = true;
+        } else {
+          // Re-throw other errors
+          throw extractionError;
         }
+      }
+
+      if (!skipPatternMatching && pdfData) {
+        console.log(`✅ Layer 1 complete in ${Date.now() - extractionStart}ms`);
+        console.log(`   - Pages: ${pdfData.pages.length}`);
+        console.log(`   - Text length: ${pdfData.fullText.length} characters`);
+
+        // ============================================
+        // LAYER 2: Pattern Matching (1-2 seconds)
+        // ============================================
+        console.log('🔍 Layer 2: Bank detection and pattern matching...');
+        const detectionStart = Date.now();
+
+        const bankDetection = detectBankType(pdfData.fullText);
+
+        console.log(`   - Detected bank: ${bankDetection.bankName}`);
+        console.log(`   - Confidence: ${bankDetection.confidence}`);
+        console.log(`   - Format: ${bankDetection.format}`);
+
+        // Try pattern-based parsing if confidence is high
+        if (bankDetection.confidence >= 15) {
+          console.log('   - Attempting pattern-based parsing...');
+
+          const transactions = await this.parseWithPatterns(pdfData, bankDetection);
+
+          if (transactions.length > 0) {
+            const processingTime = Date.now() - startTime;
+
+            console.log(`✅ Layer 2 complete in ${Date.now() - detectionStart}ms`);
+            console.log(`✨ Fast parsing successful: ${transactions.length} transactions in ${processingTime}ms`);
+
+            const csvContent = this.generateCSV(transactions);
+
+            return {
+              success: true,
+              transactions,
+              transactionCount: transactions.length,
+              bankName: bankDetection.bankName,
+              detectedFormat: bankDetection.format,
+              method: 'fast-pattern',
+              confidence: bankDetection.confidence,
+              processingTime,
+              csvContent,
+            };
+          }
+        }
+
+        console.log('⚠️ Layer 2 failed or low confidence');
       }
 
       // ============================================
       // LAYER 3: AI Fallback (40-70 seconds)
       // ============================================
-      console.log('⚠️ Layer 2 failed or low confidence');
-      console.log('🤖 Layer 3: Using AI fallback for unknown format...');
+      if (skipPatternMatching) {
+        console.log('🤖 Layer 3: Using AI fallback (encrypted PDF)...');
+      } else {
+        console.log('🤖 Layer 3: Using AI fallback (unknown format)...');
+      }
       console.log('   - This will take 40-70 seconds...');
 
       const aiStart = Date.now();
