@@ -5,24 +5,41 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Upload, FileText, CheckCircle2, XCircle, Clock, Download, ArrowRight, Eye } from "lucide-react"
+import { Upload, FileText, CheckCircle2, XCircle, Clock, Download, ArrowRight, Eye, AlertCircle } from "lucide-react"
 import Link from "next/link"
+import { NoParserDetectedDialog } from "@/components/support/no-parser-detected-dialog"
+import { SupportRequestForm } from "@/components/support/support-request-form"
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
-// Mock processing job for demonstration
-const mockProcessingJob = {
-  id: "demo-1",
-  fileName: "HSBC_Statement_March_2024.pdf",
-  fileSize: "2.4 MB",
-  bank: "HSBC",
-  status: "processing" as const,
-  progress: 75,
-  startTime: new Date(Date.now() - 1000 * 60 * 1),
-  transactionCount: 847
+interface ProcessingJob {
+  id: string
+  fileName: string
+  fileSize: string
+  file: File
+  status: 'uploading' | 'processing' | 'completed' | 'error'
+  progress: number
+  error?: string
+  result?: {
+    bankName?: string
+    transactionCount: number
+    csvContent?: string
+    preview?: any[]
+    download?: any[]
+  }
 }
 
 export function DashboardUpload() {
   const [isDragging, setIsDragging] = useState(false)
-  const [hasActiveJob, setHasActiveJob] = useState(false) // Demo: show upload section by default
+  const [currentJob, setCurrentJob] = useState<ProcessingJob | null>(null)
+  const [showNoParserDialog, setShowNoParserDialog] = useState(false)
+  const [showSupportForm, setShowSupportForm] = useState(false)
+  const [unsupportedBankData, setUnsupportedBankData] = useState<{
+    bankName: string
+    pdfUrl: string
+    pdfStoragePath: string
+    userEmail: string
+  } | null>(null)
+  const supabase = createClientComponentClient()
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -38,73 +55,285 @@ export function DashboardUpload() {
     e.preventDefault()
     setIsDragging(false)
     const files = Array.from(e.dataTransfer.files)
-    console.log('Dropped files:', files)
-    setHasActiveJob(true)
+    if (files.length > 0 && files[0].type === 'application/pdf') {
+      processFile(files[0])
+    }
   }, [])
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    console.log('Selected files:', files)
-    setHasActiveJob(true)
+    if (files.length > 0 && files[0].type === 'application/pdf') {
+      processFile(files[0])
+    }
   }, [])
 
-  if (hasActiveJob) {
+  const processFile = async (file: File) => {
+    const job: ProcessingJob = {
+      id: Date.now().toString(),
+      fileName: file.name,
+      fileSize: formatFileSize(file.size),
+      file,
+      status: 'uploading',
+      progress: 0,
+    }
+
+    setCurrentJob(job)
+
+    try {
+      // Start processing
+      job.status = 'processing'
+      job.progress = 25
+      setCurrentJob({ ...job })
+
+      console.log('📤 Uploading file to parser API:', file.name)
+
+      const formData = new FormData()
+      formData.append('file', file)
+
+      job.progress = 50
+      setCurrentJob({ ...job })
+
+      // Use Python parser (same as landing page) - faster and more accurate
+      const response = await fetch('/api/parse-python', {
+        method: 'POST',
+        body: formData,
+      })
+
+      job.progress = 75
+      setCurrentJob({ ...job })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || errorData.details || 'Failed to parse PDF')
+      }
+
+      const result = await response.json()
+      console.log('✅ Parser API response:', result)
+
+      job.status = 'completed'
+      job.progress = 100
+      job.result = {
+        bankName: result.bankName,
+        transactionCount: result.actualTransactionCount || result.shownTransactionCount,
+        csvContent: result.csvContent,
+        preview: result.preview,
+        download: result.download,
+      }
+      setCurrentJob({ ...job })
+
+    } catch (error: any) {
+      console.error('❌ Error processing file:', error)
+
+      // Check if this is a bank detection failure (unsupported bank)
+      const isBankDetectionError = error.message?.includes('Bank detection failed') ||
+                                    error.message?.includes('not yet available') ||
+                                    error.message?.includes('supported UK bank')
+
+      if (isBankDetectionError) {
+        // Upload PDF to Supabase storage for support request
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user) {
+            const userId = session.user.id
+            const fileName = `${userId}/${Date.now()}_${file.name}`
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('statements')
+              .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: false
+              })
+
+            if (!uploadError && uploadData) {
+              const { data: { publicUrl } } = supabase.storage
+                .from('statements')
+                .getPublicUrl(uploadData.path)
+
+              // Store data for support request
+              setUnsupportedBankData({
+                bankName: 'Unknown Bank',
+                pdfUrl: publicUrl,
+                pdfStoragePath: uploadData.path,
+                userEmail: session.user.email || ''
+              })
+
+              // Show dialog to user
+              setShowNoParserDialog(true)
+
+              // Reset the current job so error doesn't show
+              setCurrentJob(null)
+              return
+            }
+          }
+        } catch (uploadError) {
+          console.error('Error uploading to Supabase:', uploadError)
+          // Fall through to show error normally
+        }
+      }
+
+      // Show error normally if not a bank detection issue or upload failed
+      job.status = 'error'
+      job.progress = 0
+      job.error = error.message || 'Failed to process file'
+      setCurrentJob({ ...job })
+    }
+  }
+
+  const handleRequestSupport = () => {
+    setShowNoParserDialog(false)
+    setShowSupportForm(true)
+  }
+
+  const handleTryUniversalParser = () => {
+    setShowNoParserDialog(false)
+    // TODO: Implement universal parser integration
+    alert('Universal parser feature coming soon! For now, please use "Request Support" to get your bank added within 24-48 hours.')
+  }
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
+
+  const handleDownload = () => {
+    if (!currentJob?.result?.csvContent) return
+
+    const blob = new Blob([currentJob.result.csvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = currentJob.fileName.replace('.pdf', '.csv')
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  }
+
+  const handleReset = () => {
+    setCurrentJob(null)
+  }
+
+  // Processing/Completed State
+  if (currentJob) {
+    const isProcessing = currentJob.status === 'uploading' || currentJob.status === 'processing'
+    const isCompleted = currentJob.status === 'completed'
+    const isError = currentJob.status === 'error'
+
     return (
-      <Card className="border-2 border-uk-blue-200 bg-uk-blue-50 min-h-[45vh] flex flex-col">
+      <Card className={`border-2 min-h-[45vh] flex flex-col ${
+        isError ? 'border-red-200 bg-red-50' :
+        isCompleted ? 'border-green-200 bg-green-50' :
+        'border-uk-blue-200 bg-uk-blue-50'
+      }`}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl font-bold text-uk-blue-600 flex items-center gap-2">
-                <Clock className="h-5 w-5 animate-spin" />
-                Processing Your File
+              <CardTitle className={`text-xl font-bold flex items-center gap-2 ${
+                isError ? 'text-red-600' :
+                isCompleted ? 'text-green-600' :
+                'text-uk-blue-600'
+              }`}>
+                {isError && <XCircle className="h-5 w-5" />}
+                {isProcessing && <Clock className="h-5 w-5 animate-spin" />}
+                {isCompleted && <CheckCircle2 className="h-5 w-5" />}
+                {isError ? 'Processing Failed' :
+                 isCompleted ? 'Conversion Complete' :
+                 'Processing Your File'}
               </CardTitle>
-              <CardDescription className="text-uk-blue-600">
-                Your bank statement is being converted. This usually takes 10-30 seconds.
+              <CardDescription className={
+                isError ? 'text-red-600' :
+                isCompleted ? 'text-green-600' :
+                'text-uk-blue-600'
+              }>
+                {isError ? currentJob.error :
+                 isCompleted ? `Successfully extracted ${currentJob.result?.transactionCount} transactions` :
+                 'Your bank statement is being converted. This usually takes 10-30 seconds.'}
               </CardDescription>
             </div>
-            <Badge className="bg-blue-100 text-uk-blue-600 text-sm px-3 py-1">
-              Step 2 of 3
+            <Badge className={`text-sm px-3 py-1 ${
+              isError ? 'bg-red-100 text-red-600' :
+              isCompleted ? 'bg-green-100 text-green-600' :
+              'bg-blue-100 text-uk-blue-600'
+            }`}>
+              {isError ? 'Failed' :
+               isCompleted ? 'Step 3 of 3' :
+               'Step 2 of 3'}
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 flex-1 flex flex-col justify-center">
-          {/* Processing Status */}
+          {/* File Info */}
           <div className="border rounded-lg p-4 bg-white">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-uk-blue-600 rounded-lg flex items-center justify-center">
+                <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                  isError ? 'bg-red-600' :
+                  isCompleted ? 'bg-green-600' :
+                  'bg-uk-blue-600'
+                }`}>
                   <FileText className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="font-semibold">{mockProcessingJob.fileName}</p>
+                  <p className="font-semibold">{currentJob.fileName}</p>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>{mockProcessingJob.fileSize}</span>
-                    <span>•</span>
-                    <Badge variant="outline" className="text-xs">
-                      {mockProcessingJob.bank}
-                    </Badge>
+                    <span>{currentJob.fileSize}</span>
+                    {currentJob.result?.bankName && (
+                      <>
+                        <span>•</span>
+                        <Badge variant="outline" className="text-xs">
+                          {currentJob.result.bankName}
+                        </Badge>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-medium">{mockProcessingJob.progress}%</div>
-                <div className="text-xs text-muted-foreground">Processing...</div>
+                <div className="text-sm font-medium">{currentJob.progress}%</div>
+                <div className={`text-xs ${
+                  isError ? 'text-red-600' :
+                  isCompleted ? 'text-green-600' :
+                  'text-muted-foreground'
+                }`}>
+                  {isError ? 'Error' :
+                   isCompleted ? 'Complete' :
+                   'Processing...'}
+                </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Extracting transactions...</span>
-                <span>{mockProcessingJob.progress}%</span>
+            {!isError && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>
+                    {isCompleted ? 'Conversion complete!' : 'Extracting transactions...'}
+                  </span>
+                  <span>{currentJob.progress}%</span>
+                </div>
+                <Progress value={currentJob.progress} className="h-2" />
+                {currentJob.result?.transactionCount && (
+                  <div className="text-xs text-muted-foreground">
+                    Found {currentJob.result.transactionCount} transactions
+                  </div>
+                )}
               </div>
-              <Progress value={mockProcessingJob.progress} className="h-2" />
-              <div className="text-xs text-muted-foreground">
-                Found {mockProcessingJob.transactionCount} transactions so far
+            )}
+
+            {isError && (
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-red-600">
+                    <p className="font-medium">Error Details:</p>
+                    <p className="mt-1">{currentJob.error}</p>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Next Steps */}
+          {/* Progress Steps */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-white border">
               <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
@@ -116,49 +345,132 @@ export function DashboardUpload() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-uk-blue-50 border border-uk-blue-200">
-              <div className="h-8 w-8 bg-uk-blue-600 rounded-full flex items-center justify-center">
-                <Clock className="h-4 w-4 text-white animate-spin" />
+            <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+              isCompleted ? 'bg-white' :
+              isError ? 'bg-red-50 border-red-200' :
+              'bg-uk-blue-50 border-uk-blue-200'
+            }`}>
+              <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                isCompleted ? 'bg-green-100' :
+                isError ? 'bg-red-100' :
+                'bg-uk-blue-600'
+              }`}>
+                {isCompleted ? <CheckCircle2 className="h-4 w-4 text-green-600" /> :
+                 isError ? <XCircle className="h-4 w-4 text-red-600" /> :
+                 <Clock className="h-4 w-4 text-white animate-spin" />}
               </div>
               <div>
-                <div className="text-sm font-medium text-uk-blue-600">Processing</div>
-                <div className="text-xs text-uk-blue-600">Converting data</div>
+                <div className={`text-sm font-medium ${
+                  isCompleted ? '' :
+                  isError ? 'text-red-600' :
+                  'text-uk-blue-600'
+                }`}>
+                  {isError ? 'Processing Failed' : 'Processing'}
+                </div>
+                <div className={`text-xs ${
+                  isCompleted ? 'text-muted-foreground' :
+                  isError ? 'text-red-600' :
+                  'text-uk-blue-600'
+                }`}>
+                  {isError ? 'Error occurred' : 'Converting data'}
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border">
-              <div className="h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
-                <Download className="h-4 w-4 text-gray-400" />
+            <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+              isCompleted ? 'bg-green-50 border-green-200' :
+              'bg-gray-50'
+            }`}>
+              <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                isCompleted ? 'bg-green-600' : 'bg-gray-200'
+              }`}>
+                <Download className={`h-4 w-4 ${
+                  isCompleted ? 'text-white' : 'text-gray-400'
+                }`} />
               </div>
               <div>
-                <div className="text-sm font-medium text-gray-400">Download</div>
-                <div className="text-xs text-gray-400">Ready soon</div>
+                <div className={`text-sm font-medium ${
+                  isCompleted ? 'text-green-600' : 'text-gray-400'
+                }`}>Download</div>
+                <div className={`text-xs ${
+                  isCompleted ? 'text-green-600' : 'text-gray-400'
+                }`}>
+                  {isCompleted ? 'Ready now!' : 'Ready soon'}
+                </div>
               </div>
             </div>
           </div>
 
+          {/* Preview Transactions */}
+          {isCompleted && currentJob.result?.preview && currentJob.result.preview.length > 0 && (
+            <div className="border rounded-lg p-4 bg-white">
+              <h3 className="font-semibold mb-3">Transaction Preview</h3>
+              <div className="space-y-2 text-sm">
+                {currentJob.result.preview.slice(0, 3).map((txn: any, idx: number) => (
+                  <div key={idx} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                    <div>
+                      <div className="font-medium">{txn.description}</div>
+                      <div className="text-xs text-muted-foreground">{txn.date}</div>
+                    </div>
+                    <div className={`font-semibold ${
+                      txn.type === 'credit' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {txn.type === 'credit' ? '+' : '-'}£{txn.amount.toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => setHasActiveJob(false)}
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              Preview Progress
-            </Button>
-            <Link href="/dashboard/convert" className="flex-1">
-              <Button className="w-full bg-gradient-to-r from-uk-blue-600 to-uk-blue-700 hover:from-uk-blue-700 hover:to-uk-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg">
-                <ArrowRight className="mr-2 h-4 w-4" />
-                View Full Queue
+            {isError && (
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={handleReset}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Try Again
               </Button>
-            </Link>
+            )}
+            {isCompleted && (
+              <>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleReset}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Another
+                </Button>
+                <Button
+                  className="flex-1 bg-gradient-to-r from-uk-blue-600 to-uk-blue-700 hover:from-uk-blue-700 hover:to-uk-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg"
+                  onClick={handleDownload}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download CSV
+                </Button>
+              </>
+            )}
+            {isProcessing && (
+              <Button
+                variant="outline"
+                className="flex-1"
+                disabled
+              >
+                <Clock className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
     )
   }
 
+  // Upload State
   return (
     <Card className="border-2 border-dashed border-uk-blue-300 bg-gradient-to-br from-uk-blue-50 to-white min-h-[32vh] flex flex-col">
       <CardHeader className="text-center">
@@ -166,7 +478,7 @@ export function DashboardUpload() {
           Upload Your Bank Statement
         </CardTitle>
         <CardDescription className="text-lg">
-          Start by uploading your PDF or CSV bank statement to convert it to your preferred format
+          Start by uploading your PDF bank statement to convert it to CSV format
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col justify-center">
@@ -185,7 +497,7 @@ export function DashboardUpload() {
           </div>
 
           <h3 className="text-xl font-semibold mb-2 text-uk-blue-600">
-            {isDragging ? 'Drop your files here' : 'Drag & drop your bank statements'}
+            {isDragging ? 'Drop your file here' : 'Drag & drop your bank statement'}
           </h3>
 
           <p className="text-muted-foreground mb-6">
@@ -194,8 +506,7 @@ export function DashboardUpload() {
 
           <input
             type="file"
-            multiple
-            accept=".pdf,.csv"
+            accept=".pdf"
             onChange={handleFileSelect}
             className="hidden"
             id="dashboard-file-upload"
@@ -204,7 +515,7 @@ export function DashboardUpload() {
           <Button asChild size="lg" className="bg-gradient-to-r from-uk-blue-600 to-uk-blue-700 hover:from-uk-blue-700 hover:to-uk-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg px-8 py-3 h-auto">
             <label htmlFor="dashboard-file-upload" className="cursor-pointer">
               <Upload className="mr-2 h-5 w-5" />
-              Choose Files to Upload
+              Choose File to Upload
             </label>
           </Button>
 
@@ -218,11 +529,33 @@ export function DashboardUpload() {
           </div>
 
           <div className="mt-4 text-xs text-muted-foreground">
-            Supported formats: PDF, CSV • Max file size: 10MB per file • Bank statements from any UK bank
+            Supported formats: PDF • Max file size: 10MB • All UK banks supported
           </div>
         </div>
 
       </CardContent>
+
+      {/* Dialogs for unsupported banks */}
+      {unsupportedBankData && (
+        <>
+          <NoParserDetectedDialog
+            open={showNoParserDialog}
+            onOpenChange={setShowNoParserDialog}
+            bankName={unsupportedBankData.bankName}
+            onRequestSupport={handleRequestSupport}
+            onTryUniversalParser={handleTryUniversalParser}
+          />
+
+          <SupportRequestForm
+            open={showSupportForm}
+            onOpenChange={setShowSupportForm}
+            bankName={unsupportedBankData.bankName}
+            pdfUrl={unsupportedBankData.pdfUrl}
+            pdfStoragePath={unsupportedBankData.pdfStoragePath}
+            userEmail={unsupportedBankData.userEmail}
+          />
+        </>
+      )}
     </Card>
   )
 }
