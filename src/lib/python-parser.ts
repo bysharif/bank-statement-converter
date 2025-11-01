@@ -66,8 +66,9 @@ export async function parsePDFWithPython(
     if (file instanceof File) {
       formData.append('file', file);
     } else {
-      // For Buffer, create a Blob
-      const blob = new Blob([file], { type: 'application/pdf' });
+      // For Buffer, convert to Uint8Array then create a Blob
+      const uint8Array = new Uint8Array(file);
+      const blob = new Blob([uint8Array], { type: 'application/pdf' });
       const fileName = `statement-${Date.now()}.pdf`;
       formData.append('file', blob, fileName);
     }
