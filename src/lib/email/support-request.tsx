@@ -4,7 +4,8 @@
 
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend with API key or empty string (will handle gracefully)
+const resend = new Resend(process.env.RESEND_API_KEY || '');
 
 interface SupportRequestEmailData {
   userEmail: string;
@@ -21,6 +22,12 @@ interface SupportRequestEmailData {
  */
 export async function sendSupportNotificationEmail(data: SupportRequestEmailData) {
   const { userEmail, userName, bankName, urgency, notes, pdfUrl, requestId } = data;
+
+  // Check if Resend API key is configured
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not configured - skipping email notification');
+    return { success: false, error: 'Email service not configured' };
+  }
 
   try {
     await resend.emails.send({
@@ -183,6 +190,12 @@ export async function sendSupportNotificationEmail(data: SupportRequestEmailData
  */
 export async function sendUserConfirmationEmail(data: { email: string; bankName: string; userName?: string }) {
   const { email, bankName, userName } = data;
+
+  // Check if Resend API key is configured
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not configured - skipping user confirmation email');
+    return { success: false, error: 'Email service not configured' };
+  }
 
   try {
     await resend.emails.send({
