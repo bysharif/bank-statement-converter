@@ -1,5 +1,3 @@
-'use client'
-
 import { StatsCard } from "@/components/dashboard/stats-card"
 import { DashboardUpload } from "@/components/dashboard/dashboard-upload"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
@@ -7,6 +5,9 @@ import { QuickActions } from "@/components/dashboard/quick-actions"
 import { BanksResources } from "@/components/dashboard/banks-resources"
 import { CategoriesOverview } from "@/components/dashboard/categories-overview"
 import { Upload, FileText, TrendingUp, Bot } from "lucide-react"
+
+// Force dynamic rendering - dashboard requires runtime data and authentication
+export const dynamic = 'force-dynamic'
 
 export default function DashboardPage() {
   return (
