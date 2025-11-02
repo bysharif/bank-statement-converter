@@ -4,8 +4,16 @@
 
 import { Resend } from 'resend';
 
-// Initialize Resend with API key or empty string (will handle gracefully)
-const resend = new Resend(process.env.RESEND_API_KEY || '');
+// Lazy initialization of Resend client
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resendClient && process.env.RESEND_API_KEY) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  // Return client or create a dummy one if no API key
+  return resendClient || new Resend('dummy_key_for_build');
+}
 
 interface SupportRequestEmailData {
   userEmail: string;
@@ -30,6 +38,7 @@ export async function sendSupportNotificationEmail(data: SupportRequestEmailData
   }
 
   try {
+    const resend = getResendClient();
     await resend.emails.send({
       from: 'TaxFormed Support <support@taxformed.com>',
       to: 'sharif@taxformed.com',
@@ -198,6 +207,7 @@ export async function sendUserConfirmationEmail(data: { email: string; bankName:
   }
 
   try {
+    const resend = getResendClient();
     await resend.emails.send({
       from: 'TaxFormed Support <support@taxformed.com>',
       to: email,
