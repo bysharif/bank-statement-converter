@@ -39,7 +39,11 @@ export function DashboardUpload() {
     pdfStoragePath: string
     userEmail: string
   } | null>(null)
-  const supabase = createClientComponentClient()
+
+  // Lazy initialization of Supabase client - only create when needed
+  const getSupabaseClient = () => {
+    return createClientComponentClient()
+  }
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -132,6 +136,7 @@ export function DashboardUpload() {
       if (isBankDetectionError) {
         // Upload PDF to Supabase storage for support request
         try {
+          const supabase = getSupabaseClient()
           const { data: { session } } = await supabase.auth.getSession()
           if (session?.user) {
             const userId = session.user.id
