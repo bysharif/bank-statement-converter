@@ -131,30 +131,30 @@ export function HeroSectionV3() {
       const formData = new FormData()
       formData.append('file', file)
 
-      console.log('📤 Sending request to /api/parse-python (Python parser)')
+      console.log('📤 Sending request to /api/parse-single-pdf (Hybrid parser with fallback)')
 
-      // Faster progress for Python parser (should be 2-5 seconds)
+      // Progress updates for parsing (typically 5-10 seconds)
       const progressInterval = setInterval(() => {
         setProcessingProgress(prev => {
           if (prev < 90) return prev + 5
           return prev
         })
-      }, 200) // Update every 200ms for fast processing
+      }, 200) // Update every 200ms
 
-      // Stage updates for Python parser (much faster)
+      // Stage updates for parsing
       setTimeout(() => setProcessingStage('Detecting bank...'), 500)
       setTimeout(() => setProcessingStage('Extracting transactions...'), 1000)
       setTimeout(() => setProcessingStage('Validating data...'), 2000)
 
-      // Add timeout (30 seconds should be plenty for Python parser)
+      // Add timeout (60 seconds for complex PDFs)
       const controller = new AbortController()
       const timeoutId = setTimeout(() => {
-        console.error('⏱️ Request timeout after 30 seconds')
+        console.error('⏱️ Request timeout after 60 seconds')
         clearInterval(progressInterval)
         controller.abort()
-      }, 30000) // 30 seconds timeout
+      }, 60000) // 60 seconds timeout
 
-      const response = await fetch('/api/parse-python', {
+      const response = await fetch('/api/parse-single-pdf', {
         method: 'POST',
         body: formData,
         signal: controller.signal

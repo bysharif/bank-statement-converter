@@ -97,8 +97,8 @@ export function DashboardUpload() {
       job.progress = 50
       setCurrentJob({ ...job })
 
-      // Use Python parser (same as landing page) - faster and more accurate
-      const response = await fetch('/api/parse-python', {
+      // Use hybrid parser with Python fallback - always works!
+      const response = await fetch('/api/parse-single-pdf', {
         method: 'POST',
         body: formData,
       })
