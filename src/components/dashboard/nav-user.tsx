@@ -30,9 +30,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/context/AuthContext"
 
 interface NavUserProps {
-  user: {
+  user?: {
     name: string
     email: string
     avatar?: string
@@ -40,8 +41,21 @@ interface NavUserProps {
   }
 }
 
-export function NavUser({ user }: NavUserProps) {
+export function NavUser({ user: propUser }: NavUserProps) {
   const { isMobile } = useSidebar()
+  const { user: authUser, signOut } = useAuth()
+
+  // Use auth user if available, otherwise fall back to prop user
+  const user = authUser ? {
+    name: authUser.user_metadata?.full_name || authUser.email || 'User',
+    email: authUser.email || '',
+    avatar: authUser.user_metadata?.avatar_url,
+    plan: propUser?.plan || 'FREE'
+  } : propUser || {
+    name: 'Guest',
+    email: 'guest@example.com',
+    plan: 'FREE'
+  }
 
   const getInitials = (name: string) => {
     return name
@@ -136,7 +150,7 @@ export function NavUser({ user }: NavUserProps) {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => signOut()}>
               <LogOut />
               Log out
             </DropdownMenuItem>
