@@ -131,33 +131,30 @@ export function HeroSectionV3() {
       const formData = new FormData()
       formData.append('file', file)
 
-      console.log('📤 Sending request to /api/parse-single-pdf')
+      console.log('📤 Sending request to /api/parse-python (Python parser)')
 
-      // Simulate progress stages
+      // Faster progress for Python parser (should be 2-5 seconds)
       const progressInterval = setInterval(() => {
         setProcessingProgress(prev => {
-          if (prev < 90) return prev + 1
+          if (prev < 90) return prev + 5
           return prev
         })
-      }, 600) // Update every 600ms for ~60 second process
+      }, 200) // Update every 200ms for fast processing
 
-      // Stage updates
-      setTimeout(() => setProcessingStage('Analyzing document structure...'), 2000)
-      setTimeout(() => setProcessingStage('Extracting text from PDF...'), 8000)
-      setTimeout(() => setProcessingStage('Identifying transaction table...'), 15000)
-      setTimeout(() => setProcessingStage('Parsing transactions...'), 25000)
-      setTimeout(() => setProcessingStage('Validating data quality...'), 40000)
-      setTimeout(() => setProcessingStage('Finalizing results...'), 50000)
+      // Stage updates for Python parser (much faster)
+      setTimeout(() => setProcessingStage('Detecting bank...'), 500)
+      setTimeout(() => setProcessingStage('Extracting transactions...'), 1000)
+      setTimeout(() => setProcessingStage('Validating data...'), 2000)
 
-      // Add timeout to prevent hanging requests
+      // Add timeout (30 seconds should be plenty for Python parser)
       const controller = new AbortController()
       const timeoutId = setTimeout(() => {
-        console.error('⏱️ Request timeout after 65 seconds')
+        console.error('⏱️ Request timeout after 30 seconds')
         clearInterval(progressInterval)
         controller.abort()
-      }, 65000) // 65 seconds (slightly more than server timeout)
+      }, 30000) // 30 seconds timeout
 
-      const response = await fetch('/api/parse-single-pdf', {
+      const response = await fetch('/api/parse-python', {
         method: 'POST',
         body: formData,
         signal: controller.signal

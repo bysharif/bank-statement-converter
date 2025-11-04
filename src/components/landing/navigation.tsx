@@ -54,8 +54,8 @@ export function Navigation() {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center space-x-3">
-            <Button variant="ghost" className="text-gray-600 hover:text-gray-900 font-medium">
-              Sign In
+            <Button variant="ghost" className="text-gray-600 hover:text-gray-900 font-medium" asChild>
+              <Link href="/dashboard">Sign In</Link>
             </Button>
             <Button
               onClick={handleTryFree}
@@ -96,8 +96,8 @@ export function Navigation() {
                 <Link href="/blog">Blog</Link>
               </Button>
               <div className="flex flex-col space-y-2 pt-4 border-t border-gray-100">
-                <Button variant="ghost" className="text-gray-600 hover:text-gray-900 justify-start">
-                  Sign In
+                <Button variant="ghost" className="text-gray-600 hover:text-gray-900 justify-start" asChild>
+                  <Link href="/dashboard">Sign In</Link>
                 </Button>
                 <Button
                   onClick={handleTryFree}

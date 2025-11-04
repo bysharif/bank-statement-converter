@@ -112,3 +112,22 @@ temp/
 uploads/
 statements/
 .vercel
+
+# Debug and test files
+debug_*.py
+test_*.py
+START_*.sh
+
+# Temporary documentation files
+CORRECT_URL.md
+DIRECT_FIX.md
+FINAL_FIX_STEPS.md
+FIX_TIMEOUT_ISSUE.md
+IMMEDIATE_STEPS.md
+LOCAL_TESTING.md
+PARSER_FIX_IMPLEMENTATION.md
+RESTART_NEXTJS_ONLY.md
+SERVER_STATUS.md
+TEST_NOW.md
+VERIFICATION_REPORT.md
+BANK_PARSER_FRAMEWORK.md

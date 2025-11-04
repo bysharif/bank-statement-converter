@@ -30,7 +30,6 @@ import {
 const user = {
   name: "Natasha Coventry-Marshall",
   email: "natasha@coventry-marshall.co.uk",
-  avatar: "/avatars/natasha-cm.jpg",
   plan: "professional" as const,
 }
 

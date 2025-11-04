@@ -48,7 +48,6 @@ export function SiteHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src="/avatars/natasha-cm.jpg" alt="Natasha Coventry-Marshall" />
                 <AvatarFallback className="rounded-lg bg-uk-blue-600 text-white">
                   NC
                 </AvatarFallback>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { X, FileText, Users, Shield } from "lucide-react"
+import Link from 'next/link'
 
 interface SignupModalProps {
   isOpen: boolean
@@ -173,12 +174,12 @@ export function SignupModal({ isOpen, onClose, planName = "Free", planPrice = "Â
             {/* Login Link */}
             <p className="text-sm text-gray-600 text-center">
               Already have an account?{" "}
-              <button
-                onClick={onClose}
+              <Link
+                href="/dashboard"
                 className="text-uk-blue-600 hover:underline font-medium"
               >
                 Sign in
-              </button>
+              </Link>
             </p>
           </div>
         </div>

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { HybridBankParser } from '@/lib/hybrid-parser'
+import { parsePDFWithPython } from '@/lib/python-parser'
 
 // Hybrid parser is much faster:
 // - Fast pattern matching: 5-10 seconds (95% of cases)
 // - AI fallback: 40-70 seconds (5% of cases)
+// - Python parser: High accuracy for supported banks (Barclays, Wise, Monzo)
 export const maxDuration = 60; // 60 seconds for processing
 
 // Free tier transaction limit
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(`📥 Processing single PDF with AI: ${file.name}`)
+    console.log(`📥 Processing single PDF: ${file.name}`)
 
     // Convert file to buffer for server-side parsing
     console.log('🔄 Converting file to buffer...')
@@ -44,12 +46,48 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer)
     console.log(`✅ Buffer created: ${buffer.length} bytes`)
 
-    // Parse with Hybrid Parser (3-layer system)
-    console.log('🚀 Initializing Hybrid Parser (Fast + AI fallback)...')
-    const parser = new HybridBankParser()
-
-    console.log('⚡ Starting hybrid parsing (5-10 seconds for known banks)...')
-    const result = await parser.parsePDF(buffer, file.name, { userTier: 'FREE' })
+    // Try Python parser first (for supported banks: Barclays, Wise, Monzo)
+    console.log('🐍 Attempting Python parser (Barclays, Wise, Monzo)...')
+    let result;
+    
+    try {
+      const pythonResult = await parsePDFWithPython(buffer, { userTier: 'FREE' });
+      
+      if (pythonResult.success && pythonResult.transactionCount > 0) {
+        console.log(`✅ Python parser succeeded: ${pythonResult.transactionCount} transactions from ${pythonResult.bankName}`);
+        result = {
+          success: pythonResult.success,
+          method: pythonResult.method || 'python',
+          bankName: pythonResult.bankName,
+          detectedFormat: pythonResult.detectedFormat,
+          transactionCount: pythonResult.transactionCount,
+          transactions: pythonResult.transactions,
+          csvContent: undefined, // Will generate below
+          processingTime: pythonResult.processingTime,
+          confidence: pythonResult.confidence,
+          error: pythonResult.error,
+          accuracyScore: pythonResult.accuracyScore,
+        };
+      } else {
+        console.log('⚠️ Python parser failed or unsupported bank, falling back to Hybrid Parser');
+        throw new Error('Python parser not available for this bank');
+      }
+    } catch (pythonError: any) {
+      // Check if error is "unavailable" (expected for unsupported banks) vs actual error
+      const isUnavailable = pythonError.message === 'PYTHON_PARSER_UNAVAILABLE';
+      
+      if (isUnavailable) {
+        console.log('⚠️ Python parser not available for this bank (expected for unsupported banks), falling back to Hybrid Parser');
+      } else {
+        console.log(`⚠️ Python parser error: ${pythonError.message}, falling back to Hybrid Parser`);
+      }
+      
+      // Fallback to Hybrid Parser
+      console.log('🚀 Initializing Hybrid Parser (Fast + AI fallback)...')
+      const parser = new HybridBankParser()
+      console.log('⚡ Starting hybrid parsing (5-10 seconds for known banks)...')
+      result = await parser.parsePDF(buffer, file.name, { userTier: 'FREE' })
+    }
 
     console.log(`📊 Hybrid parsing result:`)
     console.log(`   - Success: ${result.success}`)
@@ -78,9 +116,14 @@ export async function POST(request: NextRequest) {
     console.log(`📊 Limiting transactions: ${allTransactions.length} → ${limitedTransactions.length} (isLimited: ${isLimited})`)
 
     // Generate limited CSV for free tier
-    const limitedCSV = result.csvContent
+    let limitedCSV = result.csvContent
       ? generateLimitedCSV(limitedTransactions, result.csvContent)
       : generateCSVFromTransactions(limitedTransactions)
+    
+    // If using Python parser and no CSV content, generate from transactions
+    if (!limitedCSV || limitedCSV.length < 10) {
+      limitedCSV = generateCSVFromTransactions(limitedTransactions)
+    }
 
     const previewTransactions = limitedTransactions.slice(0, 3)
 
