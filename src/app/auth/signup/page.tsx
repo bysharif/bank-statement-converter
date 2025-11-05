@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAuth } from '@/context/AuthContext'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,13 +12,13 @@ import Link from 'next/link'
 import { ArrowLeft, Mail, Lock, User, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 export default function SignUpPage() {
-  const { signUp } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,14 +38,27 @@ export default function SignUpPage() {
       return
     }
 
-    const { error: signUpError } = await signUp(email, password, fullName)
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
 
-    setLoading(false)
+      if (signUpError) throw signUpError
 
-    if (signUpError) {
-      setError(signUpError.message)
-    } else {
-      setSuccess(true)
+      if (data.user) {
+        setSuccess(true)
+      }
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
   }
 

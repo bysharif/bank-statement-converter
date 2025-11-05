@@ -1,41 +1,59 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { updateSession } from '@/lib/supabase/middleware'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+export async function middleware(request: NextRequest) {
+  // Update session for all requests
+  let supabaseResponse = NextResponse.next({
+    request,
+  })
 
-  // Refresh session if expired - required for Server Components
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  // Protected routes that require authentication
-  const protectedRoutes = ['/dashboard']
-  const authRoutes = ['/auth/login', '/auth/signup']
-
-  const isProtectedRoute = protectedRoutes.some(route =>
-    req.nextUrl.pathname.startsWith(route)
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({
+            request,
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
   )
-  const isAuthRoute = authRoutes.some(route =>
-    req.nextUrl.pathname.startsWith(route)
-  )
 
-  // If trying to access protected route without session, redirect to login
-  if (isProtectedRoute && !session) {
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/auth/login'
-    redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname)
-    return NextResponse.redirect(redirectUrl)
+  // Refresh session if expired
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { pathname } = request.nextUrl
+
+  // Protect dashboard routes
+  if (pathname.startsWith('/dashboard')) {
+    if (!user) {
+      // Redirect to login if not authenticated
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = '/auth/login'
+      redirectUrl.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(redirectUrl)
+    }
   }
 
-  // If trying to access auth routes with active session, redirect to dashboard
-  if (isAuthRoute && session) {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+  // Redirect to dashboard if already logged in and trying to access auth pages
+  if (pathname.startsWith('/auth/login') || pathname.startsWith('/auth/signup')) {
+    if (user) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
   }
 
-  return res
+  return supabaseResponse
 }
 
 // Specify which routes this middleware should run on
