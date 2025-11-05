@@ -12,7 +12,7 @@ interface MagicLinkEmailProps {
 
 export function MagicLinkEmail({
   name = 'there',
-  magicUrl = 'https://convert-bankstatement.com/auth/verify',
+  magicUrl = 'https://convertbank-statement.com/auth/verify',
 }: MagicLinkEmailProps) {
   return (
     <EmailLayout previewText="Your secure sign-in link">

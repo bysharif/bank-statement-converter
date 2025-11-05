@@ -13,7 +13,7 @@ interface EmailChangeEmailProps {
 
 export function EmailChangeEmail({
   name = 'there',
-  confirmUrl = 'https://convert-bankstatement.com/confirm-email',
+  confirmUrl = 'https://convertbank-statement.com/confirm-email',
   newEmail = 'your new email',
 }: EmailChangeEmailProps) {
   return (
@@ -39,7 +39,7 @@ export function EmailChangeEmail({
 
       <Text style={warningText}>
         <strong>Important:</strong> If you didn't request this email change, please contact our support team
-        immediately at support@convert-bankstatement.com to secure your account.
+        immediately at support@convertbank-statement.com to secure your account.
       </Text>
 
       <Text style={text}>

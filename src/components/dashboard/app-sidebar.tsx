@@ -33,7 +33,7 @@ const SidebarLogo = () => <CompanyLogo size="sm" />
 // Mock team data
 const teams = [
   {
-    name: "convert-bankstatement.com",
+    name: "convertbank-statement.com",
     logo: SidebarLogo,
     plan: "Professional Plan",
   },

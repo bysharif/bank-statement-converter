@@ -12,15 +12,15 @@ export function EmailFooter() {
         Converting UK bank statements to Excel format for accountants and businesses.
       </Text>
       <Text style={footerLinks}>
-        <Link href="https://convert-bankstatement.com" style={link}>
+        <Link href="https://convertbank-statement.com" style={link}>
           Website
         </Link>
         {' · '}
-        <Link href="https://convert-bankstatement.com/privacy" style={link}>
+        <Link href="https://convertbank-statement.com/privacy" style={link}>
           Privacy Policy
         </Link>
         {' · '}
-        <Link href="https://convert-bankstatement.com/terms" style={link}>
+        <Link href="https://convertbank-statement.com/terms" style={link}>
           Terms of Service
         </Link>
       </Text>

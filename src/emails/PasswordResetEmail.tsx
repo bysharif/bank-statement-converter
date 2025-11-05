@@ -12,7 +12,7 @@ interface PasswordResetEmailProps {
 
 export function PasswordResetEmail({
   name = 'there',
-  resetUrl = 'https://convert-bankstatement.com/reset-password',
+  resetUrl = 'https://convertbank-statement.com/reset-password',
 }: PasswordResetEmailProps) {
   return (
     <EmailLayout previewText="Reset your password">

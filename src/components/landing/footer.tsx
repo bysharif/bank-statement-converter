@@ -62,7 +62,7 @@ export function Footer() {
                   </svg>
                 </div>
               </div>
-              <h2 className="text-xl font-semibold text-white">convert-bankstatement.com</h2>
+              <h2 className="text-xl font-semibold text-white">convertbank-statement.com</h2>
             </div>
             <p className="text-blue-100 max-w-[70%] text-sm">
               Convert PDF bank statements to CSV, QIF & Excel with 99.6% accuracy. Secure, private, and GDPR-compliant processing for all major UK banks.

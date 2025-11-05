@@ -57,7 +57,7 @@ export async function sendSupportNotificationEmail(data: SupportRequestEmailData
     );
 
     await resend.emails.send({
-      from: 'UK Bank Statement Converter <support@convert-bankstatement.com>',
+      from: 'UK Bank Statement Converter <support@convertbank-statement.com>',
       to: 'sharif@taxformed.com',
       subject: `🔔 New Bank Parser Request: ${bankName}`,
       html: emailHtml,
@@ -94,7 +94,7 @@ export async function sendUserConfirmationEmail(data: { email: string; bankName:
     );
 
     await resend.emails.send({
-      from: 'UK Bank Statement Converter <support@convert-bankstatement.com>',
+      from: 'UK Bank Statement Converter <support@convertbank-statement.com>',
       to: email,
       subject: `Thank you for your bank parser request - ${bankName}`,
       html: emailHtml,

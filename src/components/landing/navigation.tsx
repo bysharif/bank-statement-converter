@@ -32,7 +32,7 @@ export function Navigation() {
               </div>
             </div>
             <span className="text-sm font-medium text-gray-700">
-              convert-bankstatement.com
+              convertbank-statement.com
             </span>
           </div>
 

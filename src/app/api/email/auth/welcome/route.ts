@@ -39,13 +39,13 @@ export async function POST(request: NextRequest) {
     const emailHtml = await render(
       WelcomeEmail({
         name: name || email.split('@')[0],
-        dashboardUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://convert-bankstatement.com'}/dashboard`,
+        dashboardUrl: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://convertbank-statement.com'}/dashboard`,
       })
     )
 
     // Send the email
     await resend.emails.send({
-      from: 'UK Bank Statement Converter <support@convert-bankstatement.com>',
+      from: 'UK Bank Statement Converter <support@convertbank-statement.com>',
       to: email,
       subject: 'Welcome to UK Bank Statement Converter',
       html: emailHtml,

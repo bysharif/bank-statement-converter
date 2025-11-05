@@ -120,7 +120,7 @@ export function EmailDownloadModal({
               <div className="bg-uk-blue-600 text-white flex size-8 items-center justify-center rounded-lg shadow-lg">
                 <FileText className="size-4" />
               </div>
-              <span className="text-lg font-semibold text-gray-900">convert-bankstatement.com</span>
+              <span className="text-lg font-semibold text-gray-900">convertbank-statement.com</span>
             </div>
 
             {/* Header */}

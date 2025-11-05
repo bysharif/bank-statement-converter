@@ -12,7 +12,7 @@ interface WelcomeEmailProps {
 
 export function WelcomeEmail({
   name = 'there',
-  dashboardUrl = 'https://convert-bankstatement.com/dashboard',
+  dashboardUrl = 'https://convertbank-statement.com/dashboard',
 }: WelcomeEmailProps) {
   return (
     <EmailLayout previewText="Welcome to UK Bank Statement Converter">
@@ -44,7 +44,7 @@ export function WelcomeEmail({
 
       <Text style={text}>
         If you have any questions or need assistance, please don't hesitate to reach out
-        to our support team at support@convert-bankstatement.com
+        to our support team at support@convertbank-statement.com
       </Text>
 
       <Text style={signature}>

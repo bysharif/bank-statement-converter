@@ -41,7 +41,7 @@ export default function SignupPage() {
               </div>
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-bold text-gray-900">convert-bankstatement.com</span>
+              <span className="text-xl font-bold text-gray-900">convertbank-statement.com</span>
               <span className="text-xs text-gray-500">Convert Statements</span>
             </div>
           </div>

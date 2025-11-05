@@ -334,7 +334,7 @@ export default function ConvertPage() {
           <div className="mt-8 text-center">
             <p className="text-gray-500 text-sm italic">
               The Bank statement converter is provided by{' '}
-              <span className="text-uk-blue-600 font-medium">convert-bankstatement.com</span>.{' '}
+              <span className="text-uk-blue-600 font-medium">convertbank-statement.com</span>.{' '}
               We help companies convert statements smarter, process better, and manage financial data more efficiently.
             </p>
           </div>
