@@ -1,3 +1,5 @@
+'use client'
+
 import { Bell, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,16 +17,33 @@ import {
   AvatarImage,
 } from "@/components/ui/avatar"
 import { CompanyLogo } from "@/components/shared/company-logo"
+import { useAuth } from "@/context/AuthContext"
 
 export function SiteHeader() {
+  const { user, signOut } = useAuth()
+
+  // Get user's first name for greeting
+  const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'
+  const firstName = fullName.split(' ')[0]
+
+  // Get initials for avatar
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  const initials = getInitials(fullName)
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-6">
       <div className="flex-1 flex items-center gap-4">
         {/* Logo */}
         <div className="flex items-center gap-2">
           <CompanyLogo size="sm" />
-          <span className="font-semibold text-lg">Hey Natasha, Welcome back</span>
-          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Professional Plan</span>
+          <span className="font-semibold text-lg">Hey {firstName}, Welcome back</span>
         </div>
       </div>
 
@@ -48,8 +67,9 @@ export function SiteHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
               <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarImage src={user?.user_metadata?.avatar_url} alt={fullName} />
                 <AvatarFallback className="rounded-lg bg-uk-blue-600 text-white">
-                  NC
+                  {initials}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -57,9 +77,9 @@ export function SiteHeader() {
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Natasha Coventry-Marshall</p>
+                <p className="text-sm font-medium leading-none">{fullName}</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  natasha@coventry-marshall.co.uk
+                  {user?.email || ''}
                 </p>
               </div>
             </DropdownMenuLabel>
@@ -68,7 +88,7 @@ export function SiteHeader() {
             <DropdownMenuItem>Billing</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Log out</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => signOut()}>Log out</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

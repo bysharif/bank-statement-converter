@@ -25,13 +25,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-
-// Mock user data
-const user = {
-  name: "Natasha Coventry-Marshall",
-  email: "natasha@coventry-marshall.co.uk",
-  plan: "professional" as const,
-}
+import { useAuth } from "@/context/AuthContext"
 
 // Custom logo component for sidebar
 const SidebarLogo = () => <CompanyLogo size="sm" />
@@ -70,6 +64,15 @@ const navMain = [
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user: authUser } = useAuth()
+
+  // Get user data from auth context
+  const user = {
+    name: authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || 'User',
+    email: authUser?.email || '',
+    plan: 'free' as const, // TODO: Get from database profile
+  }
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>

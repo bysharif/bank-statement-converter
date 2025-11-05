@@ -1,63 +1,13 @@
 'use client'
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Download, FileText, AlertCircle, CheckCircle2 } from "lucide-react"
 import { ActivityItem } from "@/types/dashboard"
-
-// Mock data - replace with real data later
-const mockActivity: ActivityItem[] = [
-  {
-    id: "1",
-    type: "conversion",
-    title: "HSBC_Statement_March_2024.pdf",
-    description: "Successfully converted • 1,247 transactions",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-    status: "success",
-    fileName: "HSBC_Statement_March_2024.pdf",
-    bank: "HSBC"
-  },
-  {
-    id: "2",
-    type: "download",
-    title: "Lloyds_Feb_2024.csv",
-    description: "Downloaded CSV export",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    status: "success",
-    fileName: "Lloyds_Feb_2024.csv",
-    bank: "Lloyds"
-  },
-  {
-    id: "3",
-    type: "conversion",
-    title: "Barclays_Statement_Jan_2024.pdf",
-    description: "Successfully converted • 856 transactions",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4), // 4 hours ago
-    status: "success",
-    fileName: "Barclays_Statement_Jan_2024.pdf",
-    bank: "Barclays"
-  },
-  {
-    id: "4",
-    type: "error",
-    title: "Unknown_Format.pdf",
-    description: "Conversion failed - unsupported format",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 hours ago
-    status: "error",
-    fileName: "Unknown_Format.pdf"
-  },
-  {
-    id: "5",
-    type: "conversion",
-    title: "Monzo_Statement_Dec_2023.csv",
-    description: "Successfully converted • 324 transactions",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    status: "success",
-    fileName: "Monzo_Statement_Dec_2023.csv",
-    bank: "Monzo"
-  }
-]
+import { useAuth } from "@/context/AuthContext"
+import { getRecentActivity, RecentActivity as RecentActivityType } from "@/lib/supabase-queries"
 
 function formatTimeAgo(date: Date) {
   const now = new Date()
@@ -93,6 +43,23 @@ function getStatusBadge(status: ActivityItem['status']) {
 }
 
 export function RecentActivity() {
+  const { user } = useAuth()
+  const [activity, setActivity] = useState<RecentActivityType[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchActivity() {
+      if (user?.id) {
+        setLoading(true)
+        const recentActivity = await getRecentActivity(user.id, 5)
+        setActivity(recentActivity)
+        setLoading(false)
+      }
+    }
+
+    fetchActivity()
+  }, [user?.id])
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -103,48 +70,64 @@ export function RecentActivity() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {mockActivity.map((activity) => {
-            const Icon = getActivityIcon(activity.type, activity.status)
+          {loading ? (
+            <div className="flex items-center justify-center p-8">
+              <p className="text-sm text-muted-foreground">Loading activity...</p>
+            </div>
+          ) : activity.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+              <FileText className="h-12 w-12 text-muted-foreground mb-3" />
+              <p className="text-sm font-medium">No conversions yet</p>
+              <p className="text-xs text-muted-foreground">Upload your first bank statement to get started</p>
+            </div>
+          ) : (
+            activity.map((item) => {
+              // Map status to component badge format
+              const badgeStatus = item.status === 'success' ? 'success' : item.status === 'failed' ? 'error' : 'pending'
+              const Icon = getActivityIcon('conversion', badgeStatus)
 
-            return (
-              <div key={activity.id} className="flex items-center gap-4 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                  activity.status === 'success' ? 'bg-green-100' :
-                  activity.status === 'error' ? 'bg-red-100' : 'bg-gray-100'
-                }`}>
-                  <Icon className={`h-4 w-4 ${
-                    activity.status === 'success' ? 'text-green-600' :
-                    activity.status === 'error' ? 'text-red-600' : 'text-gray-600'
-                  }`} />
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-medium truncate">{activity.title}</p>
-                    {getStatusBadge(activity.status)}
+              return (
+                <div key={item.id} className="flex items-center gap-4 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                    item.status === 'success' ? 'bg-green-100' :
+                    item.status === 'failed' ? 'bg-red-100' : 'bg-gray-100'
+                  }`}>
+                    <Icon className={`h-4 w-4 ${
+                      item.status === 'success' ? 'text-green-600' :
+                      item.status === 'failed' ? 'text-red-600' : 'text-gray-600'
+                    }`} />
                   </div>
-                  <p className="text-xs text-muted-foreground">{activity.description}</p>
-                </div>
 
-                <div className="flex flex-col items-end gap-1">
-                  <span className="text-xs text-muted-foreground">
-                    {formatTimeAgo(activity.timestamp)}
-                  </span>
-                  {activity.bank && (
-                    <Badge variant="outline" className="text-xs">
-                      {activity.bank}
-                    </Badge>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm font-medium truncate">{item.filename}</p>
+                      {getStatusBadge(badgeStatus)}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {item.transactionCount ? `${item.transactionCount.toLocaleString()} transactions processed` : 'Processing...'}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-xs text-muted-foreground">
+                      {formatTimeAgo(new Date(item.timestamp))}
+                    </span>
+                    {item.bank && (
+                      <Badge variant="outline" className="text-xs">
+                        {item.bank}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {item.status === 'success' && (
+                    <Button size="sm" variant="ghost">
+                      <Download className="h-4 w-4" />
+                    </Button>
                   )}
                 </div>
-
-                {activity.type === 'conversion' && activity.status === 'success' && (
-                  <Button size="sm" variant="ghost">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            )
-          })}
+              )
+            })
+          )}
         </div>
       </CardContent>
     </Card>

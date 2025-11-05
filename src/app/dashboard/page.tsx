@@ -1,3 +1,6 @@
+'use client'
+
+import { useEffect, useState } from "react"
 import { StatsCard } from "@/components/dashboard/stats-card"
 import { DashboardUpload } from "@/components/dashboard/dashboard-upload"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
@@ -5,37 +8,50 @@ import { QuickActions } from "@/components/dashboard/quick-actions"
 import { BanksResources } from "@/components/dashboard/banks-resources"
 import { CategoriesOverview } from "@/components/dashboard/categories-overview"
 import { Upload, FileText, TrendingUp, Bot } from "lucide-react"
-
-// Force dynamic rendering - dashboard requires runtime data and authentication
-export const dynamic = 'force-dynamic'
+import { useAuth } from "@/context/AuthContext"
+import { getUserStats, UserStats } from "@/lib/supabase-queries"
 
 export default function DashboardPage() {
+  const { user } = useAuth()
+  const [stats, setStats] = useState<UserStats | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchStats() {
+      if (user?.id) {
+        setLoading(true)
+        const userStats = await getUserStats(user.id)
+        setStats(userStats)
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [user?.id])
   return (
     <>
       {/* Stats Section */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Files Processed"
-          value="247"
-          change="+12%"
+          value={loading ? "..." : stats?.totalConversions.toString() || "0"}
+          change={stats && stats.conversionsToday > 0 ? `+${stats.conversionsToday} today` : undefined}
           icon={FileText}
         />
         <StatsCard
           title="Conversions Today"
-          value="18"
-          change="+4"
+          value={loading ? "..." : stats?.conversionsToday.toString() || "0"}
           icon={Upload}
         />
         <StatsCard
           title="Success Rate"
-          value="98.5%"
-          change="+2.1%"
+          value={loading ? "..." : `${stats?.successRate || 0}%`}
           icon={TrendingUp}
         />
         <StatsCard
-          title="Data Accuracy"
-          value="96.2%"
-          subtitle="Live accuracy for user"
+          title="Total Transactions"
+          value={loading ? "..." : stats?.totalTransactions.toLocaleString() || "0"}
+          subtitle={stats && stats.totalTransactions > 0 ? "All time" : "Upload your first statement"}
           icon={Bot}
         />
       </div>

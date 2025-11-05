@@ -10,6 +10,7 @@ import Link from "next/link"
 import { NoParserDetectedDialog } from "@/components/support/no-parser-detected-dialog"
 import { SupportRequestForm } from "@/components/support/support-request-form"
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { saveConversion } from '@/lib/supabase-queries'
 
 interface ProcessingJob {
   id: string
@@ -125,6 +126,33 @@ export function DashboardUpload() {
       }
       setCurrentJob({ ...job })
 
+      // Save conversion to database
+      try {
+        const supabase = getSupabaseClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const saveResult = await saveConversion({
+            userId: session.user.id,
+            filename: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+            bankDetected: result.bankName,
+            status: 'completed',
+            transactionsCount: result.actualTransactionCount || result.shownTransactionCount,
+            processingTimeMs: result.metadata?.processingTime,
+          })
+
+          if (saveResult.success) {
+            console.log('✅ Conversion saved to database:', saveResult.jobId)
+          } else {
+            console.error('❌ Failed to save conversion:', saveResult.error)
+          }
+        }
+      } catch (saveError) {
+        console.error('❌ Error saving conversion to database:', saveError)
+        // Don't fail the entire upload if database save fails
+      }
+
     } catch (error: any) {
       console.error('❌ Error processing file:', error)
 
@@ -181,6 +209,24 @@ export function DashboardUpload() {
       job.progress = 0
       job.error = error.message || 'Failed to process file'
       setCurrentJob({ ...job })
+
+      // Save failed conversion to database for tracking
+      try {
+        const supabase = getSupabaseClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          await saveConversion({
+            userId: session.user.id,
+            filename: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+            status: 'failed',
+            errorMessage: error.message || 'Failed to process file',
+          })
+        }
+      } catch (saveError) {
+        console.error('❌ Error saving failed conversion:', saveError)
+      }
     }
   }
 
