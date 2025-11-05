@@ -9,7 +9,7 @@ export function EmailFooter() {
         © {new Date().getFullYear()} UK Bank Statement Converter. All rights reserved.
       </Text>
       <Text style={footerText}>
-        Converting UK bank statements to Excel format for accountants and businesses.
+        Transform your bank statements instantly
       </Text>
       <Text style={footerLinks}>
         <Link href="https://convertbank-statement.com" style={link}>
