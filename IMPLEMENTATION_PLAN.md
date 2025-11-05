@@ -42,30 +42,40 @@ See detailed roadmap below
   - [x] Configure Supabase Auth email templates (Fixed spam warnings)
   - [x] Configure Auth providers and settings
   - [x] Set up Supabase project and environment variables
-- [ ] Create sign up page/component
-- [ ] Create login page/component
+  - [x] Configure production redirect URLs
+- [x] Create sign up page/component
+- [x] Create login page/component
+- [x] Add auth callback handler for email confirmation
+- [x] Implement protected route middleware
+- [x] Install @supabase/ssr package
+- [x] Create Supabase client helpers (browser, server, middleware)
 - [ ] Add password reset flow
-- [ ] Implement protected route middleware
 - [ ] Add logout functionality
 - [ ] Store user session in context/state
 - [ ] Update dashboard to show real user data
 
 **Files to Create/Modify:**
 - ✅ `email-templates/` - Supabase Auth email templates (6 templates created)
-- `src/lib/supabase.ts` - Supabase client configuration
-- `src/app/auth/login/page.tsx` - Login page
-- `src/app/auth/signup/page.tsx` - Signup page
-- `src/app/auth/reset-password/page.tsx` - Password reset
-- `src/middleware.ts` - Auth middleware for protected routes
-- `src/context/AuthContext.tsx` - Auth state management
-- `src/components/dashboard/nav-user.tsx` - Update with real user data
+- ✅ `src/lib/supabase/client.ts` - Browser Supabase client
+- ✅ `src/lib/supabase/server.ts` - Server Supabase client
+- ✅ `src/lib/supabase/middleware.ts` - Middleware Supabase client
+- ✅ `src/app/auth/login/page.tsx` - Login page
+- ✅ `src/app/auth/signup/page.tsx` - Signup page
+- ✅ `src/app/auth/callback/route.ts` - Auth callback handler
+- ✅ `src/middleware.ts` - Auth middleware for protected routes
+- [ ] `src/app/auth/reset-password/page.tsx` - Password reset
+- [ ] `src/context/AuthContext.tsx` - Auth state management
+- [ ] `src/components/dashboard/nav-user.tsx` - Update with real user data
 
 **Success Criteria:**
 - ✅ Users can sign up with email/password
-- ✅ Users can log in and out
-- ✅ Dashboard shows real user name and email
+- ✅ Email confirmation emails sent with custom branding
+- ✅ Users can log in with email/password
 - ✅ Protected routes redirect to login
 - ✅ Sessions persist on page refresh
+- ✅ Email confirmation redirects to dashboard and logs user in
+- [ ] Dashboard shows real user name and email
+- [ ] Users can log out
 
 ---
 
