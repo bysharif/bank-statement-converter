@@ -7,14 +7,17 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CompanyLogo } from '@/components/shared/company-logo'
 import Link from 'next/link'
-import { ArrowLeft, Mail, Lock, User, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Mail, Lock, User, AlertCircle, CheckCircle2, Briefcase } from 'lucide-react'
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [userType, setUserType] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -26,7 +29,7 @@ export default function SignUpPage() {
     setLoading(true)
 
     // Basic validation
-    if (!email || !password || !fullName) {
+    if (!email || !password || !firstName || !lastName || !userType) {
       setError('Please fill in all fields')
       setLoading(false)
       return
@@ -44,7 +47,10 @@ export default function SignUpPage() {
         password,
         options: {
           data: {
-            full_name: fullName,
+            first_name: firstName,
+            last_name: lastName,
+            full_name: `${firstName} ${lastName}`,
+            user_type: userType,
           },
           emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback`,
         },
@@ -128,19 +134,37 @@ export default function SignUpPage() {
               </Alert>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="pl-10"
-                  required
-                />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder="John"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Doe"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
               </div>
             </div>
 
@@ -158,6 +182,26 @@ export default function SignUpPage() {
                   required
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="userType">I am a...</Label>
+              <Select value={userType} onValueChange={setUserType} required>
+                <SelectTrigger className="w-full">
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="h-4 w-4 text-gray-400" />
+                    <SelectValue placeholder="Select your role" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="freelancer">Freelancer</SelectItem>
+                  <SelectItem value="accountant">Accountant</SelectItem>
+                  <SelectItem value="business_owner">Business Owner</SelectItem>
+                  <SelectItem value="bookkeeper">Bookkeeper</SelectItem>
+                  <SelectItem value="tax_advisor">Tax Advisor</SelectItem>
+                  <SelectItem value="finance_manager">Finance Manager</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
