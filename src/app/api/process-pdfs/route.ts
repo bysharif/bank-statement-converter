@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
 
         // Parse with AI
         const result = await parser.parsePDF(buffer, file.name, {
-          userTier: subscription.tier.toUpperCase()
+          userTier: subscription.tier.toUpperCase() as 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'BUSINESS'
         })
 
         if (result.success) {
