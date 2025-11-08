@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       csvContent,
       subscription: {
         tier: subscription.tier,
-        conversionsUsed: subscription.conversionsUsedThisMonth + 1,
+        conversionsUsedThisMonth: subscription.conversionsUsedThisMonth + 1,
         conversionsLimit: subscription.conversionsLimit,
       },
       metadata: {
