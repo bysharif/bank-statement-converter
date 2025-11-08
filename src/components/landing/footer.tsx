@@ -5,28 +5,28 @@ const sections = [
   {
     title: "Product",
     links: [
-      { name: "Features", href: "#features" },
-      { name: "How it Works", href: "#how-it-works" },
-      { name: "Supported Banks", href: "#banks" },
-      { name: "Formats", href: "#formats" },
+      { name: "Features", href: "/#features" },
+      { name: "How it Works", href: "/#how-it-works" },
+      { name: "Supported Banks", href: "/#banks" },
+      { name: "Formats", href: "/#formats" },
     ],
   },
   {
     title: "Company",
     links: [
-      { name: "About", href: "#about" },
-      { name: "Contact", href: "#contact" },
-      { name: "Blog", href: "#blog" },
-      { name: "Support", href: "#support" },
+      { name: "About", href: "/about" },
+      { name: "Contact", href: "/contact" },
+      { name: "Blog", href: "/#blog" },
+      { name: "Support", href: "/support" },
     ],
   },
   {
     title: "Legal",
     links: [
-      { name: "Privacy Policy", href: "#privacy" },
-      { name: "Terms of Service", href: "#terms" },
-      { name: "GDPR Compliance", href: "#gdpr" },
-      { name: "Security", href: "#security" },
+      { name: "Privacy Policy", href: "/privacy" },
+      { name: "Terms of Service", href: "/terms" },
+      { name: "GDPR Compliance", href: "/gdpr" },
+      { name: "Security", href: "/security" },
     ],
   },
 ];
@@ -38,8 +38,8 @@ const socialLinks = [
 ];
 
 const legalLinks = [
-  { name: "Terms and Conditions", href: "#terms" },
-  { name: "Privacy Policy", href: "#privacy" },
+  { name: "Terms and Conditions", href: "/terms" },
+  { name: "Privacy Policy", href: "/privacy" },
 ];
 
 export function Footer() {
