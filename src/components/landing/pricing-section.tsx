@@ -83,11 +83,11 @@ export function PricingSection() {
                 <div className="text-center mb-6">
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-5xl font-extrabold text-gray-900">
+                    <span className="text-3xl font-bold text-gray-900">
                       {formatPrice(plan.price)}
                     </span>
                     {!isFree && (
-                      <span className="text-gray-600">/month</span>
+                      <span className="text-sm text-gray-600">/month</span>
                     )}
                   </div>
                   {!isFree && (

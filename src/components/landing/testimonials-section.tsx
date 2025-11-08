@@ -54,7 +54,7 @@ export function TestimonialsSection() {
                   </q>
                   <div className="flex flex-col items-start">
                     <p className="font-semibold">Sarah Chen</p>
-                    <p className="text-muted-foreground">Finance Director, TechStart Ltd</p>
+                    <p className="text-muted-foreground">Finance Director</p>
                   </div>
                 </div>
               </Card>
@@ -76,7 +76,7 @@ export function TestimonialsSection() {
                     </Avatar>
                     <div className="text-sm">
                       <p className="font-medium">James Mitchell</p>
-                      <p className="text-muted-foreground">Senior Accountant, Manufacturing Ltd</p>
+                      <p className="text-muted-foreground">Senior Accountant</p>
                     </div>
                   </div>
                 </CardFooter>
@@ -97,7 +97,7 @@ export function TestimonialsSection() {
                     </Avatar>
                     <div className="text-sm">
                       <p className="font-medium">Priya Patel</p>
-                      <p className="text-muted-foreground">Business Owner, Digital Agency</p>
+                      <p className="text-muted-foreground">Business Owner</p>
                     </div>
                   </div>
                 </CardFooter>
@@ -118,7 +118,7 @@ export function TestimonialsSection() {
                     </Avatar>
                     <div className="text-sm">
                       <p className="font-medium">Emma Thompson</p>
-                      <p className="text-muted-foreground">CFO, E-commerce Startup</p>
+                      <p className="text-muted-foreground">CFO</p>
                     </div>
                   </div>
                 </CardFooter>
