@@ -7,6 +7,7 @@ import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import { BanksResources } from "@/components/dashboard/banks-resources"
 import { CategoriesOverview } from "@/components/dashboard/categories-overview"
+import { SubscriptionUsage } from "@/components/dashboard/subscription-usage"
 import { Upload, FileText, TrendingUp, Bot } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { getUserStats, UserStats } from "@/lib/supabase-queries"
@@ -62,6 +63,7 @@ export default function DashboardPage() {
           <DashboardUpload />
         </div>
         <div className="space-y-4">
+          <SubscriptionUsage />
           <QuickActions />
           <BanksResources />
         </div>

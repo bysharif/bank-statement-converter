@@ -1,13 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AIBankStatementParser } from '@/lib/ai-parser'
+import { createClient } from '@/lib/supabase/server'
+import { canUserConvert, incrementConversionCount, getUserSubscription } from '@/lib/subscription'
 
 export const maxDuration = 60;
 
-// Free tier limit
-const FREE_TIER_LIMIT = 50;
-
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const supabase = await createClient()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized. Please sign in to convert files.' },
+        { status: 401 }
+      )
+    }
+
+    // Check if user can convert
+    const canConvert = await canUserConvert(user.id)
+    if (!canConvert) {
+      return NextResponse.json(
+        {
+          error: 'Monthly conversion limit reached',
+          message: 'You have reached your monthly conversion limit. Please upgrade your plan to continue converting.',
+          upgradeUrl: '/pricing'
+        },
+        { status: 403 }
+      )
+    }
+
+    // Get user's subscription for tier info
+    const subscription = await getUserSubscription(user.id)
+    if (!subscription) {
+      return NextResponse.json(
+        { error: 'Could not fetch subscription info' },
+        { status: 500 }
+      )
+    }
+
     const formData = await request.formData()
     const files = formData.getAll('files') as File[]
 
@@ -44,7 +79,9 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer)
 
         // Parse with AI
-        const result = await parser.parsePDF(buffer, file.name, { userTier: 'FREE' })
+        const result = await parser.parsePDF(buffer, file.name, {
+          userTier: subscription.tier.toUpperCase()
+        })
 
         if (result.success) {
           const transactions = parser.parseCSVToTransactions(result.csvContent)
@@ -66,25 +103,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Apply free tier limit
-    const limitedTransactions = allTransactions.slice(0, FREE_TIER_LIMIT)
-    const isLimited = allTransactions.length > FREE_TIER_LIMIT
+    // Increment conversion count
+    const incrementSuccess = await incrementConversionCount(user.id)
+    if (!incrementSuccess) {
+      console.error('Failed to increment conversion count for user:', user.id)
+    }
 
     // Generate CSV
-    const csvContent = generateBatchCSV(limitedTransactions)
+    const csvContent = generateBatchCSV(allTransactions)
 
     return NextResponse.json({
       success: true,
-      preview: limitedTransactions.slice(0, 3),
-      download: limitedTransactions,
+      preview: allTransactions.slice(0, 3),
+      download: allTransactions,
       totalTransactions: allTransactions.length,
-      shownTransactionCount: limitedTransactions.length,
+      shownTransactionCount: allTransactions.length,
       totalFiles: files.length,
       csvContent,
-      isLimited,
-      limitMessage: isLimited
-        ? `Free tier limited to ${FREE_TIER_LIMIT} transactions total. Your statements have ${allTransactions.length} transactions. Sign up for unlimited access!`
-        : undefined,
+      subscription: {
+        tier: subscription.tier,
+        conversionsUsed: subscription.conversionsUsed + 1,
+        conversionsLimit: subscription.conversionsLimit,
+      },
       metadata: {
         tokensUsed: totalTokens,
         method: 'ai-claude-batch',
