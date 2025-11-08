@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bank Statement Converter Logo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        #logo-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        #logo {
+            width: 512px;
+            height: 512px;
+            border-radius: 80px;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .document-icon {
+            width: 160px;
+            height: 200px;
+            position: relative;
+        }
+        .document-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+        .indicator {
+            position: absolute;
+            top: 42px;
+            right: 42px;
+            width: 140px;
+            height: 140px;
+            background: #22c55e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .indicator svg {
+            width: 70px;
+            height: 70px;
+            color: white;
+        }
+        .instructions {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+        }
+        .instructions h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .instructions p {
+            margin: 5px 0;
+        }
+        .download-btn {
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .download-btn:hover {
+            background: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+    <div id="logo-container">
+        <div id="logo">
+            <div class="document-icon">
+                <svg fill="none" stroke="white" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="9" y1="13" x2="15" y2="13"></line>
+                    <line x1="9" y1="17" x2="15" y2="17"></line>
+                </svg>
+            </div>
+            <div class="indicator">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="instructions">
+        <h2>Bank Statement Converter Logo</h2>
+        <p><strong>Method 1 (Recommended):</strong> Right-click on the logo above → "Save Image As..." → Save as "logo.png"</p>
+        <p><strong>Method 2:</strong> Take a screenshot of just the logo square (Cmd+Shift+4 on Mac)</p>
+        <p><strong>Method 3:</strong> Click the button below to download</p>
+        <button class="download-btn" onclick="downloadLogo()">Download as PNG</button>
+    </div>
+
+    <script>
+        function downloadLogo() {
+            const logo = document.getElementById('logo');
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // This method won't work perfectly due to browser security,
+            // so we'll just alert with instructions
+            alert('Please use Method 1 or 2:\n\n1. Right-click on the logo → Save Image As...\n2. Or take a screenshot (Cmd+Shift+4)\n\nSave it as "logo.png" in your Downloads folder.');
+        }
+    </script>
+</body>
+</html>

@@ -6,7 +6,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 // Initialize Stripe with secret key
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-10-28.acacia', // Latest API version
+  apiVersion: '2025-10-29.clover', // Latest API version
   typescript: true,
   appInfo: {
     name: 'ConvertBank Statement Converter',

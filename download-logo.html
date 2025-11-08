@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Download Logo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        #canvas-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        canvas {
+            border-radius: 80px;
+        }
+        .instructions {
+            margin-top: 30px;
+            text-align: center;
+            color: #333;
+        }
+        .download-btn {
+            margin-top: 20px;
+            padding: 16px 32px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .download-btn:hover {
+            background: #1d4ed8;
+        }
+        .success {
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #22c55e;
+            color: white;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="logoCanvas" width="512" height="512"></canvas>
+    </div>
+
+    <div class="instructions">
+        <h2>Bank Statement Converter Logo</h2>
+        <button class="download-btn" onclick="downloadLogo()">Download logo.png</button>
+        <div class="success" id="success">Logo downloaded! Check your Downloads folder.</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('logoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Draw logo
+        function drawLogo() {
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, 512, 512);
+            gradient.addColorStop(0, '#2563eb');
+            gradient.addColorStop(1, '#1d4ed8');
+
+            // Rounded rectangle
+            ctx.beginPath();
+            ctx.roundRect(0, 0, 512, 512, 80);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // Document icon (centered)
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 16;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Document outline
+            ctx.beginPath();
+            ctx.moveTo(176, 136);
+            ctx.lineTo(176, 376);
+            ctx.lineTo(336, 376);
+            ctx.lineTo(336, 226);
+            ctx.lineTo(256, 136);
+            ctx.closePath();
+            ctx.stroke();
+
+            // Document fold
+            ctx.beginPath();
+            ctx.moveTo(256, 136);
+            ctx.lineTo(256, 226);
+            ctx.lineTo(336, 226);
+            ctx.stroke();
+
+            // Lines inside document
+            ctx.lineWidth = 12;
+            ctx.beginPath();
+            ctx.moveTo(216, 276);
+            ctx.lineTo(296, 276);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(216, 316);
+            ctx.lineTo(296, 316);
+            ctx.stroke();
+
+            // Green circle indicator
+            ctx.beginPath();
+            ctx.arc(400, 112, 70, 0, Math.PI * 2);
+            ctx.fillStyle = '#22c55e';
+            ctx.fill();
+
+            // Lightning bolt
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.moveTo(400, 70);
+            ctx.lineTo(380, 105);
+            ctx.lineTo(395, 105);
+            ctx.lineTo(385, 145);
+            ctx.lineTo(420, 100);
+            ctx.lineTo(405, 100);
+            ctx.lineTo(415, 70);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function downloadLogo() {
+            const link = document.createElement('a');
+            link.download = 'logo.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            document.getElementById('success').style.display = 'block';
+        }
+
+        // Draw the logo when page loads
+        drawLogo();
+    </script>
+</body>
+</html>

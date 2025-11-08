@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { canUserConvert, getUserUsageStats } from '@/lib/subscription'
+import { getUserUsageStats } from '@/lib/subscription'
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,10 +15,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user can convert
-    const canConvert = await canUserConvert(user.id)
-
-    // Get usage stats
+    // Get usage stats (includes canConvert)
     const usageStats = await getUserUsageStats(user.id)
 
     if (!usageStats) {
@@ -28,10 +25,7 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({
-      canConvert,
-      ...usageStats,
-    })
+    return NextResponse.json(usageStats)
   } catch (error) {
     console.error('Error checking conversion limit:', error)
     return NextResponse.json(

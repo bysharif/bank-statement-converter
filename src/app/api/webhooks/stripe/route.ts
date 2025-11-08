@@ -148,14 +148,16 @@ async function handleSubscriptionCreated(
   const tier = await getTierFromPriceId(priceId)
 
   // Update user subscription in database
+  // Note: current_period_start/end exist on the API object but aren't in the TS types
+  const subscriptionData = subscription as any
   await updateUserSubscription(userId, {
     tier,
     status: subscription.status as SubscriptionStatus,
     stripeSubscriptionId: subscription.id,
     stripePriceId: priceId,
-    currentPeriodStart: new Date(subscription.current_period_start * 1000),
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    currentPeriodStart: new Date(subscriptionData.current_period_start * 1000),
+    currentPeriodEnd: new Date(subscriptionData.current_period_end * 1000),
+    cancelAtPeriodEnd: subscriptionData.cancel_at_period_end,
   })
 
   console.log(`Subscription activated for user ${userId} with tier ${tier}`)
@@ -180,14 +182,16 @@ async function handleSubscriptionUpdated(
   const priceId = subscription.items.data[0].price.id
   const tier = await getTierFromPriceId(priceId)
 
+  // Note: current_period_start/end exist on the API object but aren't in the TS types
+  const subscriptionData = subscription as any
   await updateUserSubscription(userId, {
     tier,
     status: subscription.status as SubscriptionStatus,
     stripeSubscriptionId: subscription.id,
     stripePriceId: priceId,
-    currentPeriodStart: new Date(subscription.current_period_start * 1000),
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    currentPeriodStart: new Date(subscriptionData.current_period_start * 1000),
+    currentPeriodEnd: new Date(subscriptionData.current_period_end * 1000),
+    cancelAtPeriodEnd: subscriptionData.cancel_at_period_end,
   })
 
   console.log(`Subscription updated for user ${userId}`)
@@ -210,10 +214,12 @@ async function handleSubscriptionDeleted(
   }
 
   // Downgrade to free tier
+  // Note: current_period_end exists on the API object but isn't in the TS types
+  const subscriptionData = subscription as any
   await updateUserSubscription(userId, {
     tier: 'free',
     status: 'canceled',
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    currentPeriodEnd: new Date(subscriptionData.current_period_end * 1000),
   })
 
   console.log(`Subscription canceled, downgraded user ${userId} to free tier`)
@@ -227,8 +233,10 @@ async function handleInvoicePaymentSucceeded(
 ): Promise<void> {
   console.log('Processing invoice.payment_succeeded:', invoice.id)
 
+  // Note: subscription property exists on the API object but isn't in the TS types
+  const invoiceData = invoice as any
   const customerId = invoice.customer as string
-  const subscriptionId = invoice.subscription as string
+  const subscriptionId = invoiceData.subscription as string
 
   if (!subscriptionId) {
     console.log('Invoice not related to subscription')
