@@ -45,7 +45,7 @@ const legalLinks = [
 
 export function Footer() {
   return (
-    <section className="pt-40 pb-16 bg-uk-blue-600">
+    <section className="pt-40 pb-16 bg-[#1E40AF]">
       <div className="container">
         <div className="flex w-full flex-col justify-between gap-10 lg:flex-row lg:items-start lg:text-left">
           <div className="flex w-full flex-col justify-between gap-6 lg:items-start">
