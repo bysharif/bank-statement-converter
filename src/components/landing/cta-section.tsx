@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CheckCircle, Clock, Zap, Shield } from 'lucide-react'
-import { AIChatbot } from '@/components/ai-chat/AIChatbot'
+import { JuntoChat } from '@/components/ai-chat/JuntoChat'
 
 const countryCodes = [
   { code: '+1', country: 'US/CA', flag: '🇺🇸' },
@@ -204,7 +204,7 @@ export function CTASection() {
       </div>
     </section>
 
-    <AIChatbot isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+    <JuntoChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </>
   )
 }
