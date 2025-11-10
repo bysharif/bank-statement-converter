@@ -5,6 +5,7 @@ import { Menu, X, ExternalLink, Zap, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
+import Image from 'next/image'
 import { SignupModal } from '@/components/shared/signup-modal'
 
 export function Navigation() {
@@ -20,21 +21,20 @@ export function Navigation() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-uk-blue-600 to-uk-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-uk-green-500 rounded-full flex items-center justify-center">
-                <Zap className="w-2.5 h-2.5 text-white" />
-              </div>
+          <Link href="/" className="flex items-center space-x-1">
+            <div className="relative w-[60px] h-[60px]">
+              <Image
+                src="/logo.svg"
+                alt="ConvertBank-Statement Logo"
+                width={60}
+                height={60}
+                className="object-contain"
+              />
             </div>
             <span className="text-sm font-medium text-gray-700">
               convertbank-statement.com
             </span>
-          </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">

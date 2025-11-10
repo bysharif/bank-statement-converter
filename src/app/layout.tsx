@@ -8,6 +8,14 @@ export const metadata = {
   title: 'UK Bank Statement Converter - Convert Statements Instantly',
   description: 'Secure, private, and GDPR-compliant bank statement conversion for all major UK banks. Transform your statements to CSV, Excel, or QIF in seconds.',
   keywords: 'bank statement converter, UK banks, CSV, QIF, Excel, HSBC, Lloyds, Barclays, NatWest, Monzo',
+  icons: {
+    icon: [
+      { url: '/logo.svg', type: 'image/svg+xml' },
+      { url: '/logo.png', type: 'image/png', sizes: '500x500' },
+    ],
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
 }
 
 export default function RootLayout({
