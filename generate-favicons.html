@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Favicons - Multiple Sizes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        .info {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 12px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #1e40af;
+        }
+        .canvas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .canvas-item {
+            text-align: center;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+        }
+        .canvas-item canvas {
+            border: 2px solid #e5e7eb;
+            margin: 10px 0;
+            background: white;
+        }
+        .canvas-item h3 {
+            margin: 0 0 10px 0;
+            color: #374151;
+            font-size: 16px;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        .download-all {
+            background: #10b981;
+            font-size: 16px;
+            padding: 12px 24px;
+        }
+        .download-all:hover {
+            background: #059669;
+        }
+        .success {
+            color: #10b981;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generate Optimal Favicons</h1>
+        <p>Creates perfectly sized favicons from your logo SVG for best quality.</p>
+
+        <div class="info">
+            <strong>Sizes Generated:</strong><br>
+            • 16x16px - Standard favicon<br>
+            • 32x32px - Retina favicon<br>
+            • 48x48px - Windows<br>
+            • 180x180px - Apple Touch<br>
+            • 192x192px - Android Chrome<br>
+            • 512x512px - PWA/High-res
+        </div>
+
+        <div class="canvas-grid" id="canvasGrid"></div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="download-all" onclick="downloadAll()">Download All Favicons</button>
+        </div>
+        <div class="success" id="successMsg" style="display: none; text-align: center;">✓ Downloaded all favicons!</div>
+    </div>
+
+    <script>
+        const svgString = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="500" height="500" viewBox="0 0 375 374.999991" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="efce73e124"><path d="M 65.53125 57.035156 L 309.46875 57.035156 L 309.46875 318 L 65.53125 318 Z M 65.53125 57.035156 " clip-rule="nonzero"/></clipPath>
+    <clipPath id="617dc6b591"><path d="M 109.03125 57.035156 L 265.96875 57.035156 C 289.996094 57.035156 309.46875 76.511719 309.46875 100.535156 L 309.46875 274.464844 C 309.46875 298.488281 289.996094 317.964844 265.96875 317.964844 L 109.03125 317.964844 C 85.003906 317.964844 65.53125 298.488281 65.53125 274.464844 L 65.53125 100.535156 C 65.53125 76.511719 85.003906 57.035156 109.03125 57.035156 Z M 109.03125 57.035156 " clip-rule="nonzero"/></clipPath>
+  </defs>
+  <g clip-path="url(#efce73e124)">
+    <g clip-path="url(#617dc6b591)">
+      <path fill="#2563eb" d="M 65.53125 57.035156 L 309.46875 57.035156 L 309.46875 318 L 65.53125 318 Z M 65.53125 57.035156 "/>
+    </g>
+  </g>
+  <path fill="#ffffff" d="M 102.011719 167.03125 C 101.3125 167.03125 100.75 167.59375 100.75 168.296875 L 100.75 258.050781 C 100.75 258.742188 101.3125 259.316406 102.011719 259.316406 L 257.882812 259.316406 C 258.585938 259.316406 259.148438 258.742188 259.148438 258.050781 L 259.148438 143.289062 C 259.148438 142.589844 258.585938 142.027344 257.882812 142.027344 L 214.144531 142.027344 L 191.449219 164.726562 C 189.96875 166.210938 187.992188 167.03125 185.890625 167.03125 Z M 257.882812 263.976562 L 102.011719 263.976562 C 98.746094 263.976562 96.089844 261.316406 96.089844 258.050781 L 96.089844 168.296875 C 96.089844 165.027344 98.746094 162.371094 102.011719 162.371094 L 185.890625 162.371094 C 186.746094 162.371094 187.554688 162.035156 188.15625 161.433594 L 212.214844 137.367188 L 257.882812 137.367188 C 261.152344 137.367188 263.808594 140.023438 263.808594 143.289062 L 263.808594 258.050781 C 263.808594 261.316406 261.152344 263.976562 257.882812 263.976562 "/>
+  <path fill="#ffffff" d="M 114.105469 146.273438 L 172.113281 146.273438 L 160.75 135.066406 C 160.140625 134.472656 159.347656 134.144531 158.492188 134.144531 L 115.378906 134.144531 C 114.679688 134.144531 114.105469 134.71875 114.105469 135.410156 Z M 204.269531 150.933594 L 109.445312 150.933594 L 109.445312 135.410156 C 109.445312 132.144531 112.113281 129.488281 115.378906 129.488281 L 158.492188 129.488281 C 160.578125 129.488281 162.53125 130.289062 164.015625 131.742188 L 178.746094 146.273438 L 204.269531 146.273438 L 204.269531 150.933594 "/>
+  <path fill="#ffffff" d="M 114.105469 164.699219 L 109.445312 164.699219 L 109.445312 148.605469 L 114.105469 148.605469 L 114.105469 164.699219 "/>
+  <circle cx="253.1875" cy="139.085938" r="22.207031" fill="#22c55e" transform="translate(230.980469, 116.882812)"/>
+  <path fill="#22c55e" d="M 242.214844 127.371094 L 254.925781 127.371094 L 244.644531 140.6875 C 244.195312 141.269531 244.121094 142.007812 244.445312 142.667969 C 244.769531 143.328125 245.398438 143.71875 246.132812 143.71875 L 249.386719 143.71875 L 247.882812 149.191406 L 242.53125 149.191406 L 238.863281 154.171875 C 238.863281 146.355469 238.863281 138.539062 238.863281 130.722656 C 238.863281 128.878906 240.371094 127.371094 242.214844 127.371094 Z M 260.757812 127.371094 L 264.203125 127.371094 C 266.046875 127.371094 267.554688 128.882812 267.554688 130.722656 L 267.554688 145.839844 C 267.554688 147.683594 266.046875 149.191406 264.203125 149.191406 L 254.59375 149.191406 L 261.800781 139.40625 C 262.230469 138.820312 262.292969 138.09375 261.964844 137.445312 C 261.636719 136.796875 261.011719 136.414062 260.285156 136.414062 L 257.300781 136.414062 L 260.757812 127.371094 "/>
+  <path fill="#ff911d" d="M 246.132812 141.839844 L 251.851562 141.839844 L 248.386719 154.449219 L 260.285156 138.292969 L 254.566406 138.292969 L 260.164062 123.667969 L 246.132812 141.839844 "/>
+</svg>`;
+
+        const sizes = [
+            { size: 16, name: 'favicon-16x16.png', label: '16x16 (Standard)' },
+            { size: 32, name: 'favicon-32x32.png', label: '32x32 (Retina)' },
+            { size: 48, name: 'favicon-48x48.png', label: '48x48 (Windows)' },
+            { size: 180, name: 'apple-touch-icon.png', label: '180x180 (Apple)' },
+            { size: 192, name: 'android-chrome-192x192.png', label: '192x192 (Android)' },
+            { size: 512, name: 'android-chrome-512x512.png', label: '512x512 (PWA)' }
+        ];
+
+        const canvases = {};
+
+        function createCanvas(sizeObj) {
+            const container = document.getElementById('canvasGrid');
+            const item = document.createElement('div');
+            item.className = 'canvas-item';
+
+            const title = document.createElement('h3');
+            title.textContent = sizeObj.label;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = sizeObj.size;
+            canvas.height = sizeObj.size;
+            canvas.id = `canvas-${sizeObj.size}`;
+
+            const btn = document.createElement('button');
+            btn.textContent = 'Download';
+            btn.onclick = () => downloadCanvas(sizeObj);
+
+            item.appendChild(title);
+            item.appendChild(canvas);
+            item.appendChild(btn);
+            container.appendChild(item);
+
+            canvases[sizeObj.size] = canvas;
+            renderSVG(canvas, sizeObj.size);
+        }
+
+        function renderSVG(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            const blob = new Blob([svgString], {type: 'image/svg+xml'});
+            const url = URL.createObjectURL(blob);
+
+            img.onload = function() {
+                ctx.clearRect(0, 0, size, size);
+                ctx.drawImage(img, 0, 0, size, size);
+                URL.revokeObjectURL(url);
+            };
+
+            img.src = url;
+        }
+
+        function downloadCanvas(sizeObj) {
+            const canvas = canvases[sizeObj.size];
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = sizeObj.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        }
+
+        function downloadAll() {
+            sizes.forEach((sizeObj, index) => {
+                setTimeout(() => {
+                    downloadCanvas(sizeObj);
+                }, index * 300);
+            });
+
+            const successMsg = document.getElementById('successMsg');
+            successMsg.style.display = 'block';
+            setTimeout(() => {
+                successMsg.style.display = 'none';
+            }, 3000);
+        }
+
+        // Initialize all canvases
+        sizes.forEach(sizeObj => createCanvas(sizeObj));
+    </script>
+</body>
+</html>
