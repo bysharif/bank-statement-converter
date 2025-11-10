@@ -287,14 +287,14 @@ export function HeroSectionV3() {
                   </svg>
                 </span>
               </span>
-              , not effort.
+              ,<br className="md:hidden" /> not effort.
             </h1>
             <p className="text-lg sm:text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed mb-4 px-4">
               Convert your PDF bank statements into CSV, QIF & Excel files in seconds
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <div className="flex flex-row gap-3 justify-center items-center">
               <Link href="/convert">
                 <Button className="bg-uk-blue-600 hover:bg-uk-blue-700 text-white px-6 py-2 text-sm font-medium rounded-lg shadow-sm hover:shadow-md transition-all">
                   Try Free
@@ -515,12 +515,7 @@ export function HeroSectionV3() {
                           </div>
                           <div>
                             <h3 className="text-2xl font-semibold text-gray-900 mb-2">Upload Your Statements</h3>
-                            <p className="text-gray-600">Drop up to 10 PDF bank statements for consolidated conversion</p>
-                          </div>
-                          <div className="flex justify-center gap-3">
-                            <Badge variant="outline" className="text-sm font-medium">PDF Only</Badge>
-                            <Badge variant="outline" className="text-sm font-medium">Up to 10 files</Badge>
-                            <Badge variant="outline" className="text-sm font-medium">Consolidated CSV</Badge>
+                            <p className="text-gray-600">Drop your PDF bank statement for consolidated CSV file</p>
                           </div>
                         </div>
                       )}
