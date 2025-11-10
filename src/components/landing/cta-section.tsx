@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CheckCircle, Clock, Zap, Shield } from 'lucide-react'
+import { AIChatbot } from '@/components/ai-chat/AIChatbot'
 
 const countryCodes = [
   { code: '+1', country: 'US/CA', flag: '🇺🇸' },
@@ -67,9 +68,11 @@ const countryCodes = [
 
 export function CTASection() {
   const [countryCode, setCountryCode] = useState('+44')
+  const [isChatOpen, setIsChatOpen] = useState(false)
 
   return (
-    <section className="py-20 bg-white relative">
+    <>
+      <section className="py-20 bg-white relative">
       <div className="container mx-auto px-4">
         {/* Top Stats Bar */}
         <div className="flex flex-wrap justify-center gap-8 mb-16">
@@ -172,7 +175,10 @@ export function CTASection() {
                 Get a free 15-minute consultation with our Conversion experts. We can discuss
                 Pricing, Integrations or try the app live on your own bank statements.
               </p>
-              <Button className="bg-uk-blue-600 hover:bg-uk-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-3">
+              <Button
+                onClick={() => setIsChatOpen(true)}
+                className="bg-uk-blue-600 hover:bg-uk-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-3"
+              >
                 Request a Demo
                 <div className="flex -space-x-2">
                   <img
@@ -197,5 +203,8 @@ export function CTASection() {
         </div>
       </div>
     </section>
+
+    <AIChatbot isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+    </>
   )
 }
