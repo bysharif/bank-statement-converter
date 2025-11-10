@@ -85,27 +85,27 @@ export function Navigation() {
         {isMenuOpen && (
           <div className="md:hidden border-t border-gray-100 bg-white/90 backdrop-blur-xl">
             <div className="flex flex-col space-y-1 py-4">
-              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-start rounded-lg" asChild>
+              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg" asChild>
                 <a href="#how-it-works">How it Works</a>
               </Button>
-              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-start rounded-lg" asChild>
+              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg" asChild>
                 <a href="#pricing">Pricing</a>
               </Button>
-              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-start rounded-lg" asChild>
+              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg" asChild>
                 <a href="#testimonials">Testimonials</a>
               </Button>
-              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-start rounded-lg" asChild>
+              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg" asChild>
                 <Link href="/blog">Blog</Link>
               </Button>
               <div className="flex flex-col space-y-2 pt-4 border-t border-gray-100">
-                <Button variant="ghost" className="text-gray-600 hover:text-gray-900 justify-start" asChild>
+                <Button className="bg-[#1E40AF] hover:bg-[#1a3a9f] text-white justify-end w-full" asChild>
                   <Link href="/auth/login">Sign In</Link>
                 </Button>
                 <Button
                   onClick={handleTryFree}
-                  className="bg-gradient-to-r from-uk-blue-600 to-uk-blue-700 hover:from-uk-blue-700 hover:to-uk-blue-800 text-white justify-start w-full"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 justify-end w-full"
                 >
-                  Try Free
+                  Learn more
                   <ExternalLink className="w-4 h-4 ml-2" />
                 </Button>
               </div>

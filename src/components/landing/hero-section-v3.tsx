@@ -300,9 +300,11 @@ export function HeroSectionV3() {
                   Try Free
                 </Button>
               </Link>
-              <Button variant="outline" className="px-6 py-2 text-sm font-medium rounded-lg border-gray-300 hover:bg-gray-50">
-                Learn more
-              </Button>
+              <Link href="#how-it-works">
+                <Button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 text-sm font-medium rounded-lg">
+                  Learn more
+                </Button>
+              </Link>
             </div>
           </div>
 
