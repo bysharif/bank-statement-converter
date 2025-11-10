@@ -240,7 +240,7 @@ export function HeroSectionV3() {
   }
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-white via-gray-50/30 to-blue-50/20 min-h-screen">
+    <section className="relative overflow-x-hidden overflow-y-auto bg-gradient-to-br from-white via-gray-50/30 to-blue-50/20 min-h-screen">
       {/* Subtle Background Pattern */}
       <div className="absolute inset-0 bg-grid-gray-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.4))] opacity-30" />
 
@@ -276,7 +276,7 @@ export function HeroSectionV3() {
           <div className="space-y-3">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900">
               Increase{" "}
-              <span className="text-uk-blue-600 relative inline-block min-w-[200px]">
+              <span className="text-uk-blue-600 relative inline-block min-w-[140px] sm:min-w-[180px] lg:min-w-[200px]">
                 <span
                   key={currentWord}
                   className="animate-in fade-in slide-in-from-bottom-2 duration-700 ease-out relative"
@@ -289,7 +289,7 @@ export function HeroSectionV3() {
               </span>
               , not effort.
             </h1>
-            <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed mb-4 whitespace-nowrap">
+            <p className="text-lg sm:text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed mb-4 px-4">
               Convert your PDF bank statements into CSV, QIF & Excel files in seconds
             </p>
 
