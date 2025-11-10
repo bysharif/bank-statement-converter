@@ -10,11 +10,13 @@ export const metadata = {
   keywords: 'bank statement converter, UK banks, CSV, QIF, Excel, HSBC, Lloyds, Barclays, NatWest, Monzo',
   icons: {
     icon: [
+      { url: '/icon.png', type: 'image/png', sizes: '192x192' },
       { url: '/logo.svg', type: 'image/svg+xml' },
-      { url: '/logo.png', type: 'image/png', sizes: '500x500' },
     ],
-    shortcut: '/logo.png',
-    apple: '/logo.png',
+    apple: [
+      { url: '/icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/icon.png',
   },
 }
 
