@@ -50,7 +50,7 @@ export function Footer() {
         <div className="flex w-full flex-col justify-between gap-10 lg:flex-row lg:items-start lg:text-left">
           <div className="flex w-full flex-col justify-between gap-6 lg:items-start">
             {/* Logo */}
-            <div className="flex items-center gap-1 lg:justify-start">
+            <div className="flex flex-col gap-2 lg:justify-start">
               <div className="relative w-[60px] h-[60px]">
                 <Image
                   src="/logo-white.svg"

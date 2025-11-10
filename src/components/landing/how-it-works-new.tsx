@@ -74,7 +74,7 @@ export function HowItWorksNew() {
                 <div className="w-16 h-16 bg-uk-blue-600 rounded-2xl flex items-center justify-center mx-auto lg:mx-0 mb-6 shadow-lg">
                   <Upload className="w-8 h-8 text-white" />
                 </div>
-                <div className="absolute -top-2 -right-2 w-8 h-8 bg-uk-green-500 rounded-full flex items-center justify-center">
+                <div className="absolute -top-2 -left-2 w-8 h-8 bg-uk-green-500 rounded-full flex items-center justify-center">
                   <span className="text-white font-bold text-sm">1</span>
                 </div>
               </div>
@@ -105,7 +105,7 @@ export function HowItWorksNew() {
                 <div className="w-16 h-16 bg-uk-blue-600 rounded-2xl flex items-center justify-center mx-auto lg:mx-0 mb-6 shadow-lg">
                   <Zap className="w-8 h-8 text-white" />
                 </div>
-                <div className="absolute -top-2 -right-2 w-8 h-8 bg-uk-green-500 rounded-full flex items-center justify-center">
+                <div className="absolute -top-2 -left-2 w-8 h-8 bg-uk-green-500 rounded-full flex items-center justify-center">
                   <span className="text-white font-bold text-sm">2</span>
                 </div>
               </div>
@@ -288,7 +288,7 @@ export function HowItWorksNew() {
                 <div className="w-16 h-16 bg-uk-blue-600 rounded-2xl flex items-center justify-center mx-auto lg:mx-0 mb-6 shadow-lg">
                   <Download className="w-8 h-8 text-white" />
                 </div>
-                <div className="absolute -top-2 -right-2 w-8 h-8 bg-uk-green-500 rounded-full flex items-center justify-center">
+                <div className="absolute -top-2 -left-2 w-8 h-8 bg-uk-green-500 rounded-full flex items-center justify-center">
                   <span className="text-white font-bold text-sm">3</span>
                 </div>
               </div>

@@ -81,18 +81,16 @@ const BlogSection = ({
                         {post.tags?.map((tag) => <span key={tag}>{tag}</span>)}
                       </div>
                     </div>
-                    <h3 className="text-xl font-semibold md:text-2xl lg:text-3xl">
-                      <a
-                        href={post.url}
-                        target="_blank"
-                        className="hover:underline text-gray-900"
-                      >
+                    <Link href={post.url}>
+                      <h3 className="text-xl font-semibold md:text-2xl lg:text-3xl hover:underline text-gray-900 cursor-pointer">
                         {post.title}
-                      </a>
-                    </h3>
-                    <p className="mt-4 text-gray-600 md:mt-5">
-                      {post.summary}
-                    </p>
+                      </h3>
+                    </Link>
+                    <Link href={post.url}>
+                      <p className="mt-4 text-gray-600 md:mt-5 hover:text-gray-900 cursor-pointer">
+                        {post.summary}
+                      </p>
+                    </Link>
                     <div className="mt-6 flex items-center space-x-4 text-sm md:mt-8">
                       <span className="text-gray-500">{post.author}</span>
                       <span className="text-gray-500">•</span>
@@ -101,26 +99,25 @@ const BlogSection = ({
                       </span>
                     </div>
                     <div className="mt-6 flex items-center space-x-2 md:mt-8">
-                      <a
+                      <Link
                         href={post.url}
-                        target="_blank"
                         className="inline-flex items-center font-semibold hover:underline md:text-base text-uk-blue-600 hover:text-uk-blue-700"
                       >
                         <span>Read more</span>
                         <ArrowRight className="ml-2 size-4 transition-transform" />
-                      </a>
+                      </Link>
                     </div>
                   </div>
                   <div className="order-first sm:order-last sm:col-span-5">
-                    <a href={post.url} target="_blank" className="block">
-                      <div className="aspect-video overflow-clip rounded-lg border border-gray-200">
+                    <Link href={post.url} className="block">
+                      <div className="aspect-video overflow-clip rounded-lg border border-gray-200 cursor-pointer">
                         <img
                           src={post.image}
                           alt={post.title}
                           className="h-full w-full object-cover transition-opacity duration-200 hover:opacity-70"
                         />
                       </div>
-                    </a>
+                    </Link>
                   </div>
                 </div>
               </Card>
