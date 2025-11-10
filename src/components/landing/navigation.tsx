@@ -81,36 +81,72 @@ export function Navigation() {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation - Drawer Style */}
         {isMenuOpen && (
-          <div className="md:hidden border-t border-gray-100 bg-white/90 backdrop-blur-xl">
-            <div className="flex flex-col space-y-1 py-4">
-              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg" asChild>
-                <a href="#how-it-works">How it Works</a>
-              </Button>
-              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg" asChild>
-                <a href="#pricing">Pricing</a>
-              </Button>
-              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg" asChild>
-                <a href="#testimonials">Testimonials</a>
-              </Button>
-              <Button variant="ghost" className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg" asChild>
-                <Link href="/blog">Blog</Link>
-              </Button>
-              <div className="flex flex-col space-y-2 pt-4 border-t border-gray-100">
-                <Button className="bg-[#1E40AF] hover:bg-[#1a3a9f] text-white justify-end w-full" asChild>
-                  <Link href="/auth/login">Sign In</Link>
+          <>
+            {/* Backdrop overlay */}
+            <div
+              className="md:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+              onClick={() => setIsMenuOpen(false)}
+            />
+
+            {/* Drawer menu */}
+            <div className="md:hidden fixed top-16 right-0 bottom-0 w-1/2 bg-white border-l border-gray-200 shadow-2xl z-50 overflow-y-auto">
+              <div className="flex flex-col space-y-1 py-4 px-4">
+                <Button
+                  variant="ghost"
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg"
+                  asChild
+                >
+                  <a href="#how-it-works" onClick={() => setIsMenuOpen(false)}>How it Works</a>
                 </Button>
                 <Button
-                  onClick={handleTryFree}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 justify-end w-full"
+                  variant="ghost"
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg"
+                  asChild
                 >
-                  Learn more
-                  <ExternalLink className="w-4 h-4 ml-2" />
+                  <a href="#pricing" onClick={() => setIsMenuOpen(false)}>Pricing</a>
                 </Button>
+                <Button
+                  variant="ghost"
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg"
+                  asChild
+                >
+                  <a href="#testimonials" onClick={() => setIsMenuOpen(false)}>Testimonials</a>
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg"
+                  onClick={() => setIsMenuOpen(false)}
+                  asChild
+                >
+                  <Link href="/blog">Blog</Link>
+                </Button>
+                <div className="flex flex-col space-y-2 pt-4 border-t border-gray-100">
+                  <Button
+                    className="bg-[#1E40AF] hover:bg-[#1a3a9f] text-white justify-end w-full"
+                    onClick={() => setIsMenuOpen(false)}
+                    asChild
+                  >
+                    <Link href="/auth/login">Sign In</Link>
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setIsMenuOpen(false)
+                      const howItWorks = document.getElementById('how-it-works')
+                      if (howItWorks) {
+                        howItWorks.scrollIntoView({ behavior: 'smooth' })
+                      }
+                    }}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 justify-end w-full"
+                  >
+                    Learn more
+                    <ExternalLink className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
 

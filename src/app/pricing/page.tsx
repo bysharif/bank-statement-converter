@@ -8,6 +8,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Navigation } from '@/components/landing/navigation'
+import { CTASection } from '@/components/landing/cta-section'
+import { Footer } from '@/components/landing/footer'
 
 export const metadata: Metadata = {
   title: 'Pricing | Bank Statement Converter',
@@ -89,81 +92,73 @@ export default function PricingPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      {/* Hero Section */}
-      <div className="border-b bg-white">
-        <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Simple, Transparent Pricing
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Choose the perfect plan for your business. All plans include secure
-            processing and accurate conversions.
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-white">
+      <Navigation />
 
-      {/* Pricing Cards */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
-          {plans.map((plan) => (
-            <PricingCard
-              key={plan.tier}
-              plan={plan}
-              paymentLink={plan.paymentLink}
-            />
-          ))}
+      <div className="bg-gradient-to-b from-white to-gray-50">
+        {/* Hero Section */}
+        <div className="border-b bg-white">
+          <div className="container mx-auto px-4 py-16 text-center">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Simple, Transparent Pricing
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Choose the perfect plan for your business. All plans include secure
+              processing and accurate conversions.
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Feature Comparison */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-8">
-            Compare All Features
-          </h2>
-          <PricingComparison />
-        </div>
-      </div>
-
-      {/* FAQ Section */}
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-8">
-            Frequently Asked Questions
-          </h2>
-          <Accordion type="single" collapsible className="w-full">
-            {faqs.map((faq, index) => (
-              <AccordionItem key={index} value={`item-${index}`}>
-                <AccordionTrigger className="text-left">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-gray-600">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
+        {/* Pricing Cards */}
+        <div className="container mx-auto px-4 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+            {plans.map((plan) => (
+              <PricingCard
+                key={plan.tier}
+                plan={plan}
+                paymentLink={plan.paymentLink}
+              />
             ))}
-          </Accordion>
+          </div>
+        </div>
+
+        {/* Feature Comparison */}
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-8">
+              Compare All Features
+            </h2>
+            <PricingComparison />
+          </div>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-8">
+              Frequently Asked Questions
+            </h2>
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`}>
+                  <AccordionTrigger className="text-left">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-gray-600">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
         </div>
       </div>
 
       {/* CTA Section */}
-      <div className="border-t bg-uk-blue-50">
-        <div className="container mx-auto px-4 py-16 text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Ready to get started?
-          </h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Start with our free plan today. No credit card required.
-          </p>
-          <a
-            href="/auth/signup"
-            className="inline-block bg-uk-blue-600 hover:bg-uk-blue-700 text-white font-semibold px-8 py-3 rounded-lg transition-colors"
-          >
-            Get Started Free
-          </a>
-        </div>
-      </div>
+      <CTASection />
+
+      {/* Footer */}
+      <Footer />
     </div>
   )
 }
