@@ -92,11 +92,11 @@ export function TestimonialsSection() {
                     <Avatar className="size-9 rounded-full ring-1 ring-input">
                       <AvatarImage
                         src="/testimonial-emeka.jpg"
-                        alt="Priya Patel"
+                        alt="David Ade"
                       />
                     </Avatar>
                     <div className="text-sm">
-                      <p className="font-medium">Priya Patel</p>
+                      <p className="font-medium">David Ade</p>
                       <p className="text-muted-foreground">Business Owner</p>
                     </div>
                   </div>

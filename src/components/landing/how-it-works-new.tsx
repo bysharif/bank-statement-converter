@@ -15,7 +15,7 @@ export function HowItWorksNew() {
           <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-3">
             Three simple steps
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto whitespace-nowrap">
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Transform your bank statements with our AI-powered platform
           </p>
         </div>
