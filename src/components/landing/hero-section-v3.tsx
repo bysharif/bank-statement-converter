@@ -276,7 +276,7 @@ export function HeroSectionV3() {
           <div className="space-y-3">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900">
               Increase{" "}
-              <span className="text-uk-blue-600 relative inline-block min-w-[140px] sm:min-w-[180px] lg:min-w-[200px]">
+              <span className="text-uk-blue-600 relative inline-block">
                 <span
                   key={currentWord}
                   className="animate-in fade-in slide-in-from-bottom-2 duration-700 ease-out relative"
