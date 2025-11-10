@@ -1,11 +1,73 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { CheckCircle, Clock, Zap, Shield } from 'lucide-react'
 
+const countryCodes = [
+  { code: '+1', country: 'US/CA', flag: '🇺🇸' },
+  { code: '+44', country: 'UK', flag: '🇬🇧' },
+  { code: '+61', country: 'AU', flag: '🇦🇺' },
+  { code: '+91', country: 'IN', flag: '🇮🇳' },
+  { code: '+86', country: 'CN', flag: '🇨🇳' },
+  { code: '+81', country: 'JP', flag: '🇯🇵' },
+  { code: '+49', country: 'DE', flag: '🇩🇪' },
+  { code: '+33', country: 'FR', flag: '🇫🇷' },
+  { code: '+39', country: 'IT', flag: '🇮🇹' },
+  { code: '+34', country: 'ES', flag: '🇪🇸' },
+  { code: '+7', country: 'RU', flag: '🇷🇺' },
+  { code: '+55', country: 'BR', flag: '🇧🇷' },
+  { code: '+52', country: 'MX', flag: '🇲🇽' },
+  { code: '+27', country: 'ZA', flag: '🇿🇦' },
+  { code: '+82', country: 'KR', flag: '🇰🇷' },
+  { code: '+31', country: 'NL', flag: '🇳🇱' },
+  { code: '+46', country: 'SE', flag: '🇸🇪' },
+  { code: '+47', country: 'NO', flag: '🇳🇴' },
+  { code: '+45', country: 'DK', flag: '🇩🇰' },
+  { code: '+358', country: 'FI', flag: '🇫🇮' },
+  { code: '+41', country: 'CH', flag: '🇨🇭' },
+  { code: '+43', country: 'AT', flag: '🇦🇹' },
+  { code: '+32', country: 'BE', flag: '🇧🇪' },
+  { code: '+351', country: 'PT', flag: '🇵🇹' },
+  { code: '+30', country: 'GR', flag: '🇬🇷' },
+  { code: '+48', country: 'PL', flag: '🇵🇱' },
+  { code: '+420', country: 'CZ', flag: '🇨🇿' },
+  { code: '+36', country: 'HU', flag: '🇭🇺' },
+  { code: '+40', country: 'RO', flag: '🇷🇴' },
+  { code: '+353', country: 'IE', flag: '🇮🇪' },
+  { code: '+64', country: 'NZ', flag: '🇳🇿' },
+  { code: '+65', country: 'SG', flag: '🇸🇬' },
+  { code: '+60', country: 'MY', flag: '🇲🇾' },
+  { code: '+63', country: 'PH', flag: '🇵🇭' },
+  { code: '+66', country: 'TH', flag: '🇹🇭' },
+  { code: '+84', country: 'VN', flag: '🇻🇳' },
+  { code: '+62', country: 'ID', flag: '🇮🇩' },
+  { code: '+971', country: 'AE', flag: '🇦🇪' },
+  { code: '+966', country: 'SA', flag: '🇸🇦' },
+  { code: '+20', country: 'EG', flag: '🇪🇬' },
+  { code: '+234', country: 'NG', flag: '🇳🇬' },
+  { code: '+254', country: 'KE', flag: '🇰🇪' },
+  { code: '+92', country: 'PK', flag: '🇵🇰' },
+  { code: '+880', country: 'BD', flag: '🇧🇩' },
+  { code: '+94', country: 'LK', flag: '🇱🇰' },
+  { code: '+977', country: 'NP', flag: '🇳🇵' },
+  { code: '+98', country: 'IR', flag: '🇮🇷' },
+  { code: '+972', country: 'IL', flag: '🇮🇱' },
+  { code: '+90', country: 'TR', flag: '🇹🇷' },
+  { code: '+380', country: 'UA', flag: '🇺🇦' },
+]
+
 export function CTASection() {
+  const [countryCode, setCountryCode] = useState('+44')
+
   return (
     <section className="py-20 bg-white relative">
       <div className="container mx-auto px-4">
@@ -46,7 +108,7 @@ export function CTASection() {
               </svg>
               <span className="text-xs font-semibold text-uk-blue-700">Get in Touch</span>
             </div>
-            <h2 className="text-3xl lg:text-5xl font-bold text-gray-900 mb-3">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 mb-3 whitespace-nowrap">
               Have more questions?
             </h2>
           </div>
@@ -64,12 +126,23 @@ export function CTASection() {
                   />
                 </div>
                 <div className="flex gap-4">
-                  <div className="w-20">
-                    <Input
-                      type="text"
-                      placeholder="+1"
-                      className="w-full p-4 border border-gray-300 rounded-lg text-center"
-                    />
+                  <div className="w-32">
+                    <Select value={countryCode} onValueChange={setCountryCode}>
+                      <SelectTrigger className="w-full h-[52px] border border-gray-300 rounded-lg">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {countryCodes.map((country) => (
+                          <SelectItem key={country.code} value={country.code}>
+                            <span className="flex items-center gap-2">
+                              <span>{country.flag}</span>
+                              <span>{country.code}</span>
+                              <span className="text-xs text-gray-500">{country.country}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="flex-1">
                     <Input
