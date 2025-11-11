@@ -12,13 +12,13 @@ export function PricingSection() {
       ...PLAN_FEATURES.free,
       paymentLink: undefined,
       buttonText: 'Get Started Free',
-      buttonVariant: 'outline' as const,
+      buttonVariant: 'default' as const,
     },
     {
       ...PLAN_FEATURES.starter,
       paymentLink: process.env.NEXT_PUBLIC_STRIPE_STARTER_PAYMENT_LINK,
       buttonText: 'Subscribe Now',
-      buttonVariant: 'outline' as const,
+      buttonVariant: 'default' as const,
     },
     {
       ...PLAN_FEATURES.professional,
@@ -30,7 +30,7 @@ export function PricingSection() {
       ...PLAN_FEATURES.business,
       paymentLink: process.env.NEXT_PUBLIC_STRIPE_BUSINESS_PAYMENT_LINK,
       buttonText: 'Subscribe Now',
-      buttonVariant: 'outline' as const,
+      buttonVariant: 'default' as const,
     },
   ]
 
@@ -117,11 +117,7 @@ export function PricingSection() {
                       className="block w-full"
                     >
                       <Button
-                        className={`w-full py-6 text-base font-semibold ${
-                          isPopular
-                            ? 'bg-uk-blue-600 hover:bg-uk-blue-700 text-white'
-                            : ''
-                        }`}
+                        className="w-full py-6 text-base font-semibold"
                         variant={plan.buttonVariant}
                       >
                         {plan.buttonText}

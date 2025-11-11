@@ -65,11 +65,12 @@ export function Footer() {
             <p className="text-blue-100 max-w-[70%] text-sm">
               Convert PDF bank statements to CSV, QIF & Excel with 99.6% accuracy. Secure, private, and GDPR-compliant processing for all major UK banks.
             </p>
-            <ul className="text-blue-100 flex items-center space-x-6">
+            <ul className="text-blue-100 flex items-center gap-6">
               {socialLinks.map((social, idx) => (
-                <li key={idx} className="hover:text-primary font-medium">
-                  <a href={social.href} aria-label={social.label}>
+                <li key={idx} className="hover:text-white font-medium">
+                  <a href={social.href} className="flex items-center gap-2" aria-label={social.label}>
                     {social.icon}
+                    <span className="text-sm">{social.label}</span>
                   </a>
                 </li>
               ))}

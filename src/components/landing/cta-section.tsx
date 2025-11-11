@@ -166,34 +166,33 @@ export function CTASection() {
               </form>
             </div>
 
-            {/* Right Side - Demo CTA */}
+            {/* Right Side - Junto AI CTA */}
             <div className="bg-gray-50 rounded-xl p-8">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-4">Talk to an AI expert</h3>
+              <h3 className="text-2xl font-semibold text-gray-900 mb-4">Chat with Junto, our AI Assistant</h3>
               <p className="text-gray-600 mb-6">
-                Get a free 15-minute consultation with our Conversion experts. We can discuss
-                Pricing, Integrations or try the app live on your own bank statements.
+                Get instant answers from Junto, our AI chatbot. Ask about pricing, supported banks,
+                features, integrations, or anything else. Available 24/7 to help you.
               </p>
               <Button
-                className="bg-uk-blue-600 hover:bg-uk-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-3"
+                onClick={() => {
+                  // Trigger Chatbase widget to open
+                  if (typeof window !== 'undefined' && (window as any).chatbase) {
+                    try {
+                      (window as any).chatbase('open')
+                    } catch (e) {
+                      console.log('Chatbase not yet loaded, trying alternate method')
+                      // Fallback: Try clicking the chatbase button
+                      const chatButton = document.querySelector('[id*="chatbase"]') as HTMLElement
+                      if (chatButton) chatButton.click()
+                    }
+                  }
+                }}
+                className="bg-uk-blue-600 hover:bg-uk-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-3 cursor-pointer"
               >
-                Request a Demo
-                <div className="flex -space-x-2">
-                  <img
-                    src="/testimonial-james.jpg"
-                    alt="Expert 1"
-                    className="w-6 h-6 rounded-full border-2 border-white object-cover"
-                  />
-                  <img
-                    src="/testimonial-anna.jpg"
-                    alt="Expert 2"
-                    className="w-6 h-6 rounded-full border-2 border-white object-cover"
-                  />
-                  <img
-                    src="/testimonial-emeka.jpg"
-                    alt="Expert 3"
-                    className="w-6 h-6 rounded-full border-2 border-white object-cover"
-                  />
-                </div>
+                Chat to Support Now
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
               </Button>
             </div>
           </div>
