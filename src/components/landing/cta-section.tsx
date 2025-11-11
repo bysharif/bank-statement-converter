@@ -11,7 +11,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { CheckCircle, Clock, Zap, Shield } from 'lucide-react'
-import { JuntoChat } from '@/components/ai-chat/JuntoChat'
 
 const countryCodes = [
   { code: '+1', country: 'US/CA', flag: '🇺🇸' },
@@ -68,7 +67,6 @@ const countryCodes = [
 
 export function CTASection() {
   const [countryCode, setCountryCode] = useState('+44')
-  const [isChatOpen, setIsChatOpen] = useState(false)
 
   return (
     <>
@@ -176,7 +174,6 @@ export function CTASection() {
                 Pricing, Integrations or try the app live on your own bank statements.
               </p>
               <Button
-                onClick={() => setIsChatOpen(true)}
                 className="bg-uk-blue-600 hover:bg-uk-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-3"
               >
                 Request a Demo
@@ -203,8 +200,6 @@ export function CTASection() {
         </div>
       </div>
     </section>
-
-    <JuntoChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </>
   )
 }
