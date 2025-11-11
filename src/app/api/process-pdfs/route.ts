@@ -6,6 +6,8 @@ import { canUserConvert, incrementConversionCount, getUserSubscription } from '@
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+
   try {
     // Check authentication
     const supabase = await createClient()
@@ -107,6 +109,61 @@ export async function POST(request: NextRequest) {
     const incrementSuccess = await incrementConversionCount(user.id)
     if (!incrementSuccess) {
       console.error('Failed to increment conversion count for user:', user.id)
+    }
+
+    // Save conversion job to database
+    const processingTime = Date.now() - startTime
+    let jobId: string | null = null
+
+    try {
+      const { data: job, error: jobError } = await supabase
+        .from('conversion_jobs')
+        .insert({
+          user_id: user.id,
+          original_filename: files.map(f => f.name).join(', '),
+          file_size: files.reduce((sum, f) => sum + f.size, 0),
+          file_type: 'pdf',
+          bank_detected: 'AI-Detected',
+          input_format: 'pdf',
+          output_format: 'csv',
+          status: 'completed',
+          progress: 100,
+          transactions_count: allTransactions.length,
+          processing_time_ms: processingTime,
+          parser_version: 'ai-claude-v1',
+          completed_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+
+      if (jobError) {
+        console.error('Failed to save conversion job:', jobError)
+      } else if (job) {
+        jobId = job.id
+
+        // Save individual transactions
+        if (allTransactions.length > 0) {
+          const transactionRecords = allTransactions.map((txn, index) => ({
+            job_id: job.id,
+            transaction_date: txn.date,
+            description: txn.description,
+            amount: parseFloat(txn.amount) || 0,
+            balance: txn.balance ? parseFloat(txn.balance) : null,
+            row_number: index + 1,
+          }))
+
+          const { error: txnError } = await supabase
+            .from('transactions')
+            .insert(transactionRecords)
+
+          if (txnError) {
+            console.error('Failed to save transactions:', txnError)
+          }
+        }
+      }
+    } catch (dbError) {
+      console.error('Database save error:', dbError)
+      // Don't fail the conversion if DB save fails
     }
 
     // Generate CSV
