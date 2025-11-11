@@ -5,6 +5,40 @@ import { canUserConvert, incrementConversionCount, getUserSubscription } from '@
 
 export const maxDuration = 60;
 
+// Convert DD/MM/YYYY or MM/DD/YYYY to YYYY-MM-DD format for PostgreSQL
+function convertToISODate(dateStr: string): string {
+  if (!dateStr) return new Date().toISOString().split('T')[0]
+
+  // Try to parse the date string
+  const parts = dateStr.split(/[\/\-]/)
+
+  if (parts.length === 3) {
+    // Check if it's DD/MM/YYYY format (most common in bank statements)
+    const day = parseInt(parts[0])
+    const month = parseInt(parts[1])
+    const year = parseInt(parts[2])
+
+    // Validate and convert
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      const fullYear = year < 100 ? 2000 + year : year
+      return `${fullYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    }
+  }
+
+  // Fallback: try to parse as a date and convert
+  try {
+    const date = new Date(dateStr)
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0]
+    }
+  } catch (e) {
+    console.error('Failed to parse date:', dateStr)
+  }
+
+  // Last resort: return current date
+  return new Date().toISOString().split('T')[0]
+}
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
 
@@ -145,7 +179,7 @@ export async function POST(request: NextRequest) {
         if (allTransactions.length > 0) {
           const transactionRecords = allTransactions.map((txn, index) => ({
             job_id: job.id,
-            transaction_date: txn.date,
+            transaction_date: convertToISODate(txn.date),
             description: txn.description,
             amount: parseFloat(txn.amount) || 0,
             balance: txn.balance ? parseFloat(txn.balance) : null,
