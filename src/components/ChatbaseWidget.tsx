@@ -17,14 +17,14 @@ export function ChatbaseWidget() {
   useEffect(() => {
     // Configure the chatbot
     window.embeddedChatbotConfig = {
-      chatbotId: "YOUR_CHATBOT_ID_HERE", // Replace with your actual Chatbot ID from Chatbase
+      chatbotId: "fv1bxhgzolv7fhs3yc30zoxjhn23qqv9",
       domain: "www.chatbase.co"
     }
 
     // Load the Chatbase script
     const script = document.createElement('script')
     script.src = "https://www.chatbase.co/embed.min.js"
-    script.setAttribute('chatbotId', "YOUR_CHATBOT_ID_HERE") // Replace with your actual Chatbot ID
+    script.setAttribute('chatbotId', "fv1bxhgzolv7fhs3yc30zoxjhn23qqv9")
     script.setAttribute('domain', "www.chatbase.co")
     script.defer = true
 
