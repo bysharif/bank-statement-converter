@@ -2,39 +2,55 @@
 
 import { useEffect } from 'react'
 
-interface ChatbaseConfig {
-  chatbotId: string
-  domain: string
-}
-
 declare global {
   interface Window {
-    embeddedChatbotConfig: ChatbaseConfig
+    chatbase: any
   }
 }
 
 export function ChatbaseWidget() {
   useEffect(() => {
-    // Configure the chatbot
-    window.embeddedChatbotConfig = {
-      chatbotId: "fv1bxhgzolv7fhs3yc30zoxjhn23qqv9",
-      domain: "www.chatbase.co"
+    // Chatbase initialization (from official embed code)
+    if (!window.chatbase || window.chatbase("getState") !== "initialized") {
+      window.chatbase = (...args: any[]) => {
+        if (!window.chatbase.q) {
+          window.chatbase.q = []
+        }
+        window.chatbase.q.push(args)
+      }
+
+      window.chatbase = new Proxy(window.chatbase, {
+        get(target, prop) {
+          if (prop === "q") {
+            return target.q
+          }
+          return (...args: any[]) => target(prop, ...args)
+        }
+      })
     }
 
-    // Load the Chatbase script
-    const script = document.createElement('script')
-    script.src = "https://www.chatbase.co/embed.min.js"
-    script.setAttribute('chatbotId', "fv1bxhgzolv7fhs3yc30zoxjhn23qqv9")
-    script.setAttribute('domain', "www.chatbase.co")
-    script.defer = true
+    const onLoad = () => {
+      const script = document.createElement("script")
+      script.src = "https://www.chatbase.co/embed.min.js"
+      script.id = "UZXwon6mpEfT7676acRja"
+      script.setAttribute('domain', "www.chatbase.co")
+      document.body.appendChild(script)
+    }
 
-    document.body.appendChild(script)
+    if (document.readyState === "complete") {
+      onLoad()
+    } else {
+      window.addEventListener("load", onLoad)
+    }
 
     // Cleanup function
     return () => {
-      document.body.removeChild(script)
+      const existingScript = document.getElementById("UZXwon6mpEfT7676acRja")
+      if (existingScript) {
+        existingScript.remove()
+      }
     }
   }, [])
 
-  return null // This component doesn't render anything visible
+  return null
 }
