@@ -50,9 +50,9 @@ export class AIBankStatementParser {
       const base64PDF = pdfBuffer.toString('base64');
       const prompt = this.createParsingPrompt();
 
-      // Increase tokens for FREE tier to capture all transactions
-      // 8192 tokens can handle ~300-400 transactions
-      const maxTokens = options?.maxTokens || (options?.userTier === 'FREE' ? 8192 : 16384);
+      // Claude 3.5 Haiku max output tokens: 8,192
+      // This can handle ~300-400 transactions (sufficient for most statements)
+      const maxTokens = options?.maxTokens || 8192;
 
       const response = await this.callClaudeWithRetry(base64PDF, prompt, maxTokens);
 
