@@ -49,9 +49,9 @@ export function Footer() {
       <div className="container">
         <div className="flex w-full flex-col justify-between gap-10 lg:flex-row lg:items-start lg:text-left">
           <div className="flex w-full flex-col justify-between gap-6 lg:items-start">
-            {/* Logo */}
-            <div className="flex flex-col gap-2 lg:justify-start">
-              <div className="relative w-[60px] h-[60px]">
+            {/* Logo and Title */}
+            <div className="flex items-center gap-3">
+              <div className="relative w-[60px] h-[60px] flex-shrink-0">
                 <Image
                   src="/logo-white.svg"
                   alt="ConvertBank-Statement Logo"

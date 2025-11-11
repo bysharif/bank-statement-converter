@@ -28,7 +28,7 @@ export default function BlogPost() {
               <div className="flex gap-3">
                 <Avatar className="size-10 rounded-full border-2 border-uk-blue-100">
                   <AvatarImage
-                    src="https://images.unsplash.com/photo-1494790108755-2616b612b1a4?w=150&h=150&fit=crop&crop=face"
+                    src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face"
                     alt="Sarah Mitchell"
                   />
                 </Avatar>

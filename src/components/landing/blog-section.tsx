@@ -9,6 +9,7 @@ interface Post {
   summary: string;
   label: string;
   author: string;
+  authorImage?: string;
   published: string;
   url: string;
   image: string;
@@ -31,6 +32,7 @@ const BlogSection = ({
       summary: "Learn the essential steps to prepare your bank statements for Making Tax Digital compliance, including format requirements and common pitfalls to avoid.",
       label: "Tax Compliance",
       author: "Sarah Mitchell",
+      authorImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face",
       published: "15 Mar 2024",
       url: "#",
       image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=450&fit=crop&crop=center",
@@ -92,7 +94,16 @@ const BlogSection = ({
                       </p>
                     </Link>
                     <div className="mt-6 flex items-center space-x-4 text-sm md:mt-8">
-                      <span className="text-gray-500">{post.author}</span>
+                      <div className="flex items-center space-x-2">
+                        {post.authorImage && (
+                          <img
+                            src={post.authorImage}
+                            alt={post.author}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        )}
+                        <span className="text-gray-500">{post.author}</span>
+                      </div>
                       <span className="text-gray-500">•</span>
                       <span className="text-gray-500">
                         {post.published}

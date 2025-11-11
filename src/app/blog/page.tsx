@@ -14,6 +14,7 @@ interface Post {
   summary: string;
   category: string;
   author: string;
+  authorImage?: string;
   published: string;
   readTime: string;
   image: string;
@@ -28,6 +29,7 @@ const posts: Post[] = [
     summary: "Learn the essential steps to prepare your bank statements for Making Tax Digital compliance, including format requirements and common pitfalls to avoid.",
     category: "Tax Compliance",
     author: "Sarah Mitchell",
+    authorImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face",
     published: "15 Mar 2024",
     readTime: "8 min read",
     image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&h=450&fit=crop&crop=center",
@@ -176,7 +178,15 @@ export default function BlogPage() {
                         <span>{post.published}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <User className="w-4 h-4" />
+                        {post.authorImage ? (
+                          <img
+                            src={post.authorImage}
+                            alt={post.author}
+                            className="w-5 h-5 rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-4 h-4" />
+                        )}
                         <span>{post.author}</span>
                       </div>
                     </div>
