@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 
 export function HowItWorksNew() {
   return (
-    <section id="how-it-works" className="py-20 bg-white">
+    <section id="how-it-works" className="pt-12 pb-20 bg-white">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-uk-blue-50 to-uk-green-50 rounded-full border border-uk-blue-100 mb-4">
