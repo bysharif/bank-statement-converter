@@ -20,8 +20,19 @@ export class AIBankStatementParser {
   private readonly TIMEOUT_MS = 60000;
 
   constructor(apiKey?: string) {
+    const key = apiKey || process.env.ANTHROPIC_API_KEY;
+
+    // Debug: Check if API key is loaded (without logging the actual key)
+    if (!key) {
+      console.error('❌ ANTHROPIC_API_KEY is not set! Check your environment variables.');
+      console.error('   - In local dev: Make sure .env.local exists with ANTHROPIC_API_KEY');
+      console.error('   - In production: Make sure ANTHROPIC_API_KEY is set in Vercel dashboard');
+    } else {
+      console.log('✅ ANTHROPIC_API_KEY is loaded (length:', key.length, 'chars)');
+    }
+
     this.client = new Anthropic({
-      apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
+      apiKey: key,
     });
   }
 

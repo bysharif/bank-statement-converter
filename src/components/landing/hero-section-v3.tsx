@@ -146,13 +146,13 @@ export function HeroSectionV3() {
       setTimeout(() => setProcessingStage('Extracting transactions...'), 1000)
       setTimeout(() => setProcessingStage('Validating data...'), 2000)
 
-      // Add timeout (60 seconds for complex PDFs)
+      // Add timeout (90 seconds for complex/encrypted PDFs that need AI processing)
       const controller = new AbortController()
       const timeoutId = setTimeout(() => {
-        console.error('⏱️ Request timeout after 60 seconds')
+        console.error('⏱️ Request timeout after 90 seconds')
         clearInterval(progressInterval)
         controller.abort()
-      }, 60000) // 60 seconds timeout
+      }, 90000) // 90 seconds timeout
 
       const response = await fetch('/api/parse-single-pdf', {
         method: 'POST',

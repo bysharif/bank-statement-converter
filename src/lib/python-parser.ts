@@ -75,7 +75,12 @@ export async function parsePDFWithPython(
 
     // Call Python API endpoint via Next.js API route
     // This route proxies to the Python Flask server
-    const response = await fetch('/api/parse-python', {
+    // When called from server-side, we need a full URL, not a relative path
+    const baseUrl = typeof window !== 'undefined'
+      ? '' // Client-side: use relative URL
+      : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'; // Server-side: use full URL
+
+    const response = await fetch(`${baseUrl}/api/parse-python`, {
       method: 'POST',
       body: formData,
     });
