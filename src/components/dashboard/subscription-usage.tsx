@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Zap, ArrowUpCircle, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import { useDashboardRefresh } from '@/context/DashboardRefreshContext'
 
 interface SubscriptionUsageProps {
   className?: string
@@ -28,12 +29,14 @@ interface UsageData {
 }
 
 export function SubscriptionUsage({ className }: SubscriptionUsageProps) {
+  const { refreshKey } = useDashboardRefresh()
   const [data, setData] = useState<UsageData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchUsage() {
       try {
+        setLoading(true)
         const response = await fetch('/api/subscription/usage')
         if (response.ok) {
           const usageData = await response.json()
@@ -47,7 +50,7 @@ export function SubscriptionUsage({ className }: SubscriptionUsageProps) {
     }
 
     fetchUsage()
-  }, [])
+  }, [refreshKey])
 
   if (loading) {
     return (

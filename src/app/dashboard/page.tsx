@@ -11,9 +11,11 @@ import { SubscriptionUsage } from "@/components/dashboard/subscription-usage"
 import { Upload, FileText, TrendingUp, Bot } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { getUserStats, UserStats } from "@/lib/supabase-queries"
+import { DashboardRefreshProvider, useDashboardRefresh } from "@/context/DashboardRefreshContext"
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { user } = useAuth()
+  const { refreshKey, triggerRefresh } = useDashboardRefresh()
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -28,7 +30,7 @@ export default function DashboardPage() {
     }
 
     fetchStats()
-  }, [user?.id])
+  }, [user?.id, refreshKey])
   return (
     <>
       {/* Stats Section */}
@@ -60,7 +62,7 @@ export default function DashboardPage() {
       {/* Main Upload Section */}
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <DashboardUpload />
+          <DashboardUpload onUploadComplete={triggerRefresh} />
         </div>
         <div className="space-y-4">
           <SubscriptionUsage />
@@ -75,5 +77,13 @@ export default function DashboardPage() {
         <CategoriesOverview />
       </div>
     </>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <DashboardRefreshProvider>
+      <DashboardContent />
+    </DashboardRefreshProvider>
   )
 }

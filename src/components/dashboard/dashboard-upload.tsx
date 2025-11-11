@@ -39,9 +39,14 @@ interface BatchState {
   currentIndex: number
   allCompleted: boolean
   hasErrors: boolean
+  combinedCsvContent?: string
 }
 
-export function DashboardUpload() {
+interface DashboardUploadProps {
+  onUploadComplete?: () => void
+}
+
+export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [batchState, setBatchState] = useState<BatchState | null>(null)
 
@@ -82,82 +87,100 @@ export function DashboardUpload() {
       currentIndex: 0,
       allCompleted: false,
       hasErrors: false,
+      combinedCsvContent: undefined,
     })
 
-    // Process each file sequentially
-    for (let i = 0; i < fileJobs.length; i++) {
-      const job = fileJobs[i]
-
-      try {
-        // Update state: mark as processing
+    try {
+      // Mark all files as processing
+      fileJobs.forEach(job => {
         updateFileStatus(job.id, {
           status: 'processing',
           progress: 10,
           startTime: Date.now()
         })
+      })
 
-        // Simulate realistic progress updates during processing
-        let currentProgress = 10
-        const progressInterval = setInterval(() => {
-          currentProgress = Math.min(currentProgress + Math.random() * 12 + 3, 85)
+      // Simulate realistic progress updates during processing
+      let currentProgress = 10
+      const progressInterval = setInterval(() => {
+        currentProgress = Math.min(currentProgress + Math.random() * 12 + 3, 85)
+        fileJobs.forEach(job => {
           updateFileStatus(job.id, {
             progress: Math.round(currentProgress)
           })
-        }, 800)
-
-        // Create FormData for single file
-        const formData = new FormData()
-        formData.append('files', job.file)
-
-        // Call API to process this single file
-        const response = await fetch('/api/process-pdfs', {
-          method: 'POST',
-          body: formData,
         })
+      }, 800)
 
-        clearInterval(progressInterval)
+      // Create FormData with ALL files
+      const formData = new FormData()
+      fileJobs.forEach(job => {
+        formData.append('files', job.file)
+      })
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || errorData.message || 'Failed to process file')
-        }
+      // Call API once to process all files
+      const response = await fetch('/api/process-pdfs', {
+        method: 'POST',
+        body: formData,
+      })
 
-        const result = await response.json()
+      clearInterval(progressInterval)
 
-        // Update state: mark as completed
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || errorData.message || 'Failed to process files')
+      }
+
+      const result = await response.json()
+
+      // Store combined CSV content in batch state
+      setBatchState(prev => prev ? { ...prev, combinedCsvContent: result.csvContent } : null)
+
+      // Calculate transactions per file (distribute evenly)
+      const transactionsPerFile = Math.floor(result.totalTransactions / fileJobs.length)
+      const remainingTransactions = result.totalTransactions % fileJobs.length
+
+      // Mark all files as completed with their share of transactions
+      fileJobs.forEach((job, index) => {
+        const fileTransactionCount = transactionsPerFile + (index < remainingTransactions ? 1 : 0)
+
         updateFileStatus(job.id, {
           status: 'completed',
           progress: 100,
           endTime: Date.now(),
           result: {
             bankName: 'AI-Detected',
-            transactionCount: result.totalTransactions || 0,
+            transactionCount: fileTransactionCount,
             csvContent: result.csvContent,
             preview: result.preview,
             download: result.download,
           }
         })
+      })
 
-      } catch (error: any) {
-        console.error(`Error processing ${job.fileName}:`, error)
+    } catch (error: any) {
+      console.error('Error processing batch:', error)
 
-        // Update state: mark as error
+      // Mark all files as error
+      fileJobs.forEach(job => {
         updateFileStatus(job.id, {
           status: 'error',
           progress: 0,
-          error: error.message || 'Failed to process file',
+          error: error.message || 'Failed to process files',
           endTime: Date.now()
         })
+      })
 
-        setBatchState(prev => prev ? { ...prev, hasErrors: true } : null)
-      }
-
-      // Update current index
-      setBatchState(prev => prev ? { ...prev, currentIndex: i + 1 } : null)
+      setBatchState(prev => prev ? { ...prev, hasErrors: true } : null)
     }
+
+    // Update current index to total
+    setBatchState(prev => prev ? { ...prev, currentIndex: fileJobs.length } : null)
 
     // Mark all as completed
     setBatchState(prev => prev ? { ...prev, allCompleted: true } : null)
+
+    // Trigger dashboard refresh
+    onUploadComplete?.()
   }
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -200,32 +223,34 @@ export function DashboardUpload() {
   }, [])
 
   const handleDownloadAll = () => {
-    if (!batchState) return
+    if (!batchState?.combinedCsvContent) {
+      alert('No data to download')
+      return
+    }
 
     const completedFiles = batchState.files.filter(f => f.status === 'completed')
 
     if (completedFiles.length === 0) {
-      alert('No files to download')
+      alert('No completed files to download')
       return
     }
 
-    // Download each file as separate CSV
-    completedFiles.forEach((file) => {
-      if (!file.result?.csvContent) return
+    // Generate filename based on batch
+    const timestamp = new Date().toISOString().split('T')[0]
+    const filename = completedFiles.length === 1
+      ? completedFiles[0].fileName.replace('.pdf', '.csv')
+      : `batch-export-${timestamp}.csv`
 
-      const blob = new Blob([file.result.csvContent], { type: 'text/csv' })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = file.fileName.replace('.pdf', '.csv')
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
-
-      // Add small delay between downloads
-      new Promise(resolve => setTimeout(resolve, 300))
-    })
+    // Download combined CSV
+    const blob = new Blob([batchState.combinedCsvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
   }
 
   const handleReset = () => {
@@ -412,7 +437,7 @@ export function DashboardUpload() {
                 onClick={handleDownloadAll}
               >
                 <Download className="mr-2 h-4 w-4" />
-                Download All CSVs
+                Download CSV
               </Button>
             )}
           </div>

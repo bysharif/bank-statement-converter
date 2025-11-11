@@ -8,6 +8,7 @@ import { Download, FileText, AlertCircle, CheckCircle2 } from "lucide-react"
 import { ActivityItem } from "@/types/dashboard"
 import { useAuth } from "@/context/AuthContext"
 import { getRecentActivity, RecentActivity as RecentActivityType } from "@/lib/supabase-queries"
+import { useDashboardRefresh } from "@/context/DashboardRefreshContext"
 
 function formatTimeAgo(date: Date) {
   const now = new Date()
@@ -44,6 +45,7 @@ function getStatusBadge(status: ActivityItem['status']) {
 
 export function RecentActivity() {
   const { user } = useAuth()
+  const { refreshKey } = useDashboardRefresh()
   const [activity, setActivity] = useState<RecentActivityType[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -58,7 +60,7 @@ export function RecentActivity() {
     }
 
     fetchActivity()
-  }, [user?.id])
+  }, [user?.id, refreshKey])
 
   return (
     <Card>
