@@ -59,25 +59,29 @@ export function DashboardUpload() {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    const files = Array.from(e.dataTransfer.files)
-    if (files.length > 0 && files[0].type === 'application/pdf') {
-      processFile(files[0])
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf')
+    if (files.length > 0) {
+      processFiles(files)
     }
   }, [])
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    if (files.length > 0 && files[0].type === 'application/pdf') {
-      processFile(files[0])
+    const files = Array.from(e.target.files || []).filter(f => f.type === 'application/pdf')
+    if (files.length > 0) {
+      processFiles(files)
     }
   }, [])
 
-  const processFile = async (file: File) => {
+  const processFiles = async (files: File[]) => {
+    // Take first file for job display (or could show all files)
+    const fileNames = files.map(f => f.name).join(', ')
+    const totalSize = files.reduce((sum, f) => sum + f.size, 0)
+
     const job: ProcessingJob = {
       id: Date.now().toString(),
-      fileName: file.name,
-      fileSize: formatFileSize(file.size),
-      file,
+      fileName: files.length > 1 ? `${files.length} files: ${fileNames}` : files[0].name,
+      fileSize: formatFileSize(totalSize),
+      file: files[0], // Store first file for reference
       status: 'uploading',
       progress: 0,
     }
@@ -90,16 +94,18 @@ export function DashboardUpload() {
       job.progress = 25
       setCurrentJob({ ...job })
 
-      console.log('📤 Uploading file to parser API:', file.name)
+      console.log('📤 Uploading files to batch API:', files.length, 'files')
 
       const formData = new FormData()
-      formData.append('file', file)
+      files.forEach(file => {
+        formData.append('files', file)
+      })
 
       job.progress = 50
       setCurrentJob({ ...job })
 
-      // Use hybrid parser with Python fallback - always works!
-      const response = await fetch('/api/parse-single-pdf', {
+      // Use batch processing API
+      const response = await fetch('/api/process-pdfs', {
         method: 'POST',
         body: formData,
       })
@@ -109,124 +115,36 @@ export function DashboardUpload() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || errorData.details || 'Failed to parse PDF')
+        throw new Error(errorData.error || errorData.message || 'Failed to process files')
       }
 
       const result = await response.json()
-      console.log('✅ Parser API response:', result)
+      console.log('✅ Batch API response:', result)
 
       job.status = 'completed'
       job.progress = 100
       job.result = {
-        bankName: result.bankName,
-        transactionCount: result.actualTransactionCount || result.shownTransactionCount,
+        bankName: 'AI-Detected',
+        transactionCount: result.totalTransactions || 0,
         csvContent: result.csvContent,
         preview: result.preview,
         download: result.download,
       }
       setCurrentJob({ ...job })
 
-      // Save conversion to database
-      try {
-        const supabase = getSupabaseClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user) {
-          const saveResult = await saveConversion({
-            userId: session.user.id,
-            filename: file.name,
-            fileSize: file.size,
-            fileType: file.type,
-            bankDetected: result.bankName,
-            status: 'completed',
-            transactionsCount: result.actualTransactionCount || result.shownTransactionCount,
-            processingTimeMs: result.metadata?.processingTime,
-          })
-
-          if (saveResult.success) {
-            console.log('✅ Conversion saved to database:', saveResult.jobId)
-          } else {
-            console.error('❌ Failed to save conversion:', saveResult.error)
-          }
-        }
-      } catch (saveError) {
-        console.error('❌ Error saving conversion to database:', saveError)
-        // Don't fail the entire upload if database save fails
-      }
+      // Database saving is already handled by the API endpoint
+      console.log('✅ Files processed successfully. Database records created automatically.')
 
     } catch (error: any) {
-      console.error('❌ Error processing file:', error)
+      console.error('❌ Error processing files:', error)
 
-      // Check if this is a bank detection failure (unsupported bank)
-      const isBankDetectionError = error.message?.includes('Bank detection failed') ||
-                                    error.message?.includes('not yet available') ||
-                                    error.message?.includes('supported UK bank')
-
-      if (isBankDetectionError) {
-        // Upload PDF to Supabase storage for support request
-        try {
-          const supabase = getSupabaseClient()
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session?.user) {
-            const userId = session.user.id
-            const fileName = `${userId}/${Date.now()}_${file.name}`
-
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('statements')
-              .upload(fileName, file, {
-                cacheControl: '3600',
-                upsert: false
-              })
-
-            if (!uploadError && uploadData) {
-              const { data: { publicUrl } } = supabase.storage
-                .from('statements')
-                .getPublicUrl(uploadData.path)
-
-              // Store data for support request
-              setUnsupportedBankData({
-                bankName: 'Unknown Bank',
-                pdfUrl: publicUrl,
-                pdfStoragePath: uploadData.path,
-                userEmail: session.user.email || ''
-              })
-
-              // Show dialog to user
-              setShowNoParserDialog(true)
-
-              // Reset the current job so error doesn't show
-              setCurrentJob(null)
-              return
-            }
-          }
-        } catch (uploadError) {
-          console.error('Error uploading to Supabase:', uploadError)
-          // Fall through to show error normally
-        }
-      }
-
-      // Show error normally if not a bank detection issue or upload failed
+      // Show error
       job.status = 'error'
       job.progress = 0
-      job.error = error.message || 'Failed to process file'
+      job.error = error.message || 'Failed to process files'
       setCurrentJob({ ...job })
 
-      // Save failed conversion to database for tracking
-      try {
-        const supabase = getSupabaseClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user) {
-          await saveConversion({
-            userId: session.user.id,
-            filename: file.name,
-            fileSize: file.size,
-            fileType: file.type,
-            status: 'failed',
-            errorMessage: error.message || 'Failed to process file',
-          })
-        }
-      } catch (saveError) {
-        console.error('❌ Error saving failed conversion:', saveError)
-      }
+      // Database tracking for failed conversions is handled by the API endpoint
     }
   }
 
@@ -558,6 +476,7 @@ export function DashboardUpload() {
           <input
             type="file"
             accept=".pdf"
+            multiple
             onChange={handleFileSelect}
             className="hidden"
             id="dashboard-file-upload"
