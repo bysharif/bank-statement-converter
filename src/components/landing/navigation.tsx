@@ -86,62 +86,64 @@ export function Navigation() {
           <>
             {/* Backdrop overlay */}
             <div
-              className="md:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+              className="md:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-[60]"
               onClick={() => setIsMenuOpen(false)}
+              aria-hidden="true"
             />
 
             {/* Drawer menu */}
-            <div className="md:hidden fixed top-16 right-0 bottom-0 w-1/2 bg-white border-l border-gray-200 shadow-2xl z-50 overflow-y-auto">
-              <div className="flex flex-col space-y-1 py-4 px-4">
+            <div className="md:hidden fixed top-16 right-0 bottom-0 w-[280px] max-w-[85vw] bg-white border-l border-gray-200 shadow-2xl z-[70] overflow-y-auto">
+              <div className="flex flex-col space-y-1 py-6 px-4">
+                {/* Navigation Links */}
                 <Button
                   variant="ghost"
-                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg"
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-start rounded-lg text-base font-medium"
                   asChild
                 >
                   <a href="#how-it-works" onClick={() => setIsMenuOpen(false)}>How it Works</a>
                 </Button>
                 <Button
                   variant="ghost"
-                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg"
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-start rounded-lg text-base font-medium"
                   asChild
                 >
                   <a href="#pricing" onClick={() => setIsMenuOpen(false)}>Pricing</a>
                 </Button>
                 <Button
                   variant="ghost"
-                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg"
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-start rounded-lg text-base font-medium"
                   asChild
                 >
                   <a href="#testimonials" onClick={() => setIsMenuOpen(false)}>Testimonials</a>
                 </Button>
                 <Button
                   variant="ghost"
-                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-end rounded-lg"
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-50 justify-start rounded-lg text-base font-medium"
                   onClick={() => setIsMenuOpen(false)}
                   asChild
                 >
                   <Link href="/blog">Blog</Link>
                 </Button>
-                <div className="flex flex-col space-y-2 pt-4 border-t border-gray-100">
+
+                {/* CTA Section */}
+                <div className="flex flex-col space-y-3 pt-6 mt-2 border-t border-gray-200">
                   <Button
-                    className="bg-[#1E40AF] hover:bg-[#1a3a9f] text-white justify-end w-full"
+                    className="bg-gradient-to-r from-uk-blue-600 to-uk-blue-700 hover:from-uk-blue-700 hover:to-uk-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg w-full"
+                    onClick={() => setIsMenuOpen(false)}
+                    asChild
+                  >
+                    <Link href="/auth/signup">
+                      Get Started Free
+                      <ExternalLink className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-uk-blue-600 text-uk-blue-600 hover:bg-uk-blue-50 font-medium w-full"
                     onClick={() => setIsMenuOpen(false)}
                     asChild
                   >
                     <Link href="/auth/login">Sign In</Link>
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setIsMenuOpen(false)
-                      const howItWorks = document.getElementById('how-it-works')
-                      if (howItWorks) {
-                        howItWorks.scrollIntoView({ behavior: 'smooth' })
-                      }
-                    }}
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 justify-end w-full"
-                  >
-                    Learn more
-                    <ExternalLink className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
               </div>
