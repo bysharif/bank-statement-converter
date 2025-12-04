@@ -111,16 +111,43 @@ async function handleCheckoutCompleted(
   const userId = session.client_reference_id || session.metadata?.userId
 
   if (!userId) {
-    // Try to find user by customer email
+    // Try to find user by customer email (case-insensitive)
     const supabase = await createClient()
-    const { data: profile } = await supabase
+    const customerEmail = session.customer_details?.email?.toLowerCase()
+
+    if (!customerEmail) {
+      console.error('No customer email in checkout session:', session.id)
+      return
+    }
+
+    // First try: lookup by stripe_customer_id (most reliable)
+    let profile = null
+    const { data: profileByCustomer } = await supabase
       .from('profiles')
       .select('id')
-      .eq('email', session.customer_details?.email)
+      .eq('stripe_customer_id', customerId)
       .single()
 
+    if (profileByCustomer) {
+      profile = profileByCustomer
+    } else {
+      // Second try: case-insensitive email lookup
+      const { data: profileByEmail } = await supabase
+        .from('profiles')
+        .select('id')
+        .ilike('email', customerEmail)
+        .single()
+      profile = profileByEmail
+    }
+
     if (!profile) {
-      console.error('Could not find user for checkout session')
+      console.error('Could not find user for checkout session:', {
+        sessionId: session.id,
+        customerId,
+        customerEmail,
+        clientReferenceId: session.client_reference_id,
+        metadata: session.metadata,
+      })
       return
     }
 

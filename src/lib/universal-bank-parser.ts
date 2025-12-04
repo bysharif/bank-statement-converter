@@ -234,6 +234,23 @@ const BANK_PATTERNS = {
       { pattern: /Easy Access Saver/i, weight: 8 },
       { pattern: /No fees, no minimum/i, weight: 6 }
     ]
+  },
+  caf: {
+    name: 'CAF Bank',
+    indicators: [
+      { pattern: /Charities Aid Foundation/i, weight: 10 },
+      { pattern: /CAF Bank/i, weight: 10 },
+      { pattern: /CAF Account/i, weight: 9 },
+      { pattern: /CAFBGB/i, weight: 8 }, // BIC code
+      { pattern: /40-52-40/i, weight: 9 }, // CAF sort code
+      { pattern: /charity|charitable/i, weight: 5 },
+      { pattern: /Grant|Donation/i, weight: 6 },
+      { pattern: /Kings Hill|West Malling/i, weight: 7 }, // CAF address
+      { pattern: /25 Kings Hill Avenue/i, weight: 9 },
+      { pattern: /CAF Current Account|CAF Cash Account/i, weight: 9 },
+      { pattern: /BACS Credit|BACS Debit/i, weight: 5 },
+      { pattern: /Faster Payment/i, weight: 4 }
+    ]
   }
 }
 
@@ -537,7 +554,8 @@ function parseBarclaysTransactions(text: string): Transaction[] {
 
       // Always try to build complete descriptions from surrounding lines
       // Look backward for transaction type prefixes and merchant name fragments
-      for (let k = Math.max(0, i - 5); k < i; k++) {
+      // Extended range for multi-page statements where context may be further away
+      for (let k = Math.max(0, i - 10); k < i; k++) {
         const prevLine = lines[k].trim()
         if (prevLine && !isHeaderFooterLine(prevLine) &&
             !prevLine.match(/^\d+\.\d{2}$/) && // Not just an amount
@@ -560,13 +578,18 @@ function parseBarclaysTransactions(text: string): Transaction[] {
         }
       }
 
-      for (let j = 1; j <= 8; j++) { // Increased search range
+      for (let j = 1; j <= 12; j++) { // Extended search range for multi-page statements
         if (i + j >= lines.length) break
 
         const checkLine = lines[i + j]
 
-        // Skip obvious non-amount lines
+        // Skip obvious non-amount lines but DON'T break on them
         if (isHeaderFooterLine(checkLine)) {
+          continue
+        }
+
+        // Skip page break indicators but continue searching
+        if (checkLine.match(/^Page \d+|^Continued|^Statement|^Account Number/i)) {
           continue
         }
 
@@ -726,8 +749,8 @@ function parseBarclaysTransactions(text: string): Transaction[] {
           // For generic date descriptions, do an extensive search for the actual merchant name
           let foundMerchantName = null
 
-          // Search backward more extensively for merchant names
-          for (let backSearch = Math.max(0, i - 8); backSearch < i; backSearch++) {
+          // Search backward more extensively for merchant names (extended range for multi-page)
+          for (let backSearch = Math.max(0, i - 15); backSearch < i; backSearch++) {
             const searchLine = lines[backSearch].trim()
             if (searchLine && !isHeaderFooterLine(searchLine) &&
                 !searchLine.match(/^\d+\.\d{2}$/) &&
@@ -847,26 +870,30 @@ function parseBarclaysTransactions(text: string): Transaction[] {
     })
   }
 
-  // 🔍 SECOND PASS: Simple line scanner for missed fragments
+  // 🔍 SECOND PASS: Enhanced scanner for missed transactions (multi-page aware)
   console.log(`\n🔍 SECOND PASS: Scanning for missed transaction fragments...`)
+
+  // Track processed amounts to avoid duplicate detection
+  const processedAmounts = new Set<string>()
+  transactions.forEach(t => processedAmounts.add(`${t.date}-${t.amount}`))
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
 
-    // Skip obvious non-transactions
-    if (isHeaderFooterLine(line) || line.includes('Page ') ||
-        line.includes('balance') || line.includes('Total') ||
-        line.includes('Registered') || line.length < 5) {
+    // Skip obvious non-transactions but be less aggressive
+    if (isHeaderFooterLine(line) ||
+        line.match(/^(Page \d|Statement|Account|Sort Code|SWIFTBIC|Registered)/i) ||
+        line.match(/^(Start|End|Opening|Closing)\s+balance/i) ||
+        line.length < 5) {
       continue
     }
 
-    // Look for any line with both date pattern and transaction keywords
+    // Look for any line with date pattern OR transaction keywords
     const hasDate = line.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i)
-    const hasTransactionKeyword = line.match(/(Payment|Debit|Transfer|Direct|Card|Purchase)/i)
+    const hasTransactionKeyword = line.match(/(Payment|Debit|Transfer|Direct|Card|Purchase|Standing Order|BACS|FPS|BGC)/i)
+    const hasAmount = line.match(/([\d,]+\.\d{2})/i)
 
-    if (hasDate || hasTransactionKeyword) {
-      console.log(`🎯 Potential missed transaction: "${line}"`)
-
+    if (hasDate || hasTransactionKeyword || hasAmount) {
       // Try to extract date information
       let day: string | null = null, monthStr: string | null = null
 
@@ -874,8 +901,8 @@ function parseBarclaysTransactions(text: string): Transaction[] {
         day = hasDate[1]
         monthStr = hasDate[2]
       } else {
-        // Look in surrounding lines for date
-        for (let j = Math.max(0, i - 2); j <= Math.min(lines.length - 1, i + 2); j++) {
+        // Look in surrounding lines for date (extended range)
+        for (let j = Math.max(0, i - 5); j <= Math.min(lines.length - 1, i + 5); j++) {
           const nearbyDate = lines[j].match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i)
           if (nearbyDate) {
             day = nearbyDate[1]
@@ -885,13 +912,14 @@ function parseBarclaysTransactions(text: string): Transaction[] {
         }
       }
 
-      // Look for amount in surrounding lines
+      // Look for amount in surrounding lines (extended range)
       let amount: number | null = null
-      for (let j = Math.max(0, i - 3); j <= Math.min(lines.length - 1, i + 3); j++) {
+      for (let j = Math.max(0, i - 5); j <= Math.min(lines.length - 1, i + 5); j++) {
         const amountMatch = lines[j].match(/([\d,]+\.\d{2})/i)
         if (amountMatch) {
           const candidateAmount = parseFloat(amountMatch[1].replace(/,/g, ''))
-          if (candidateAmount > 0 && candidateAmount < 100000) { // Reasonable amount range
+          // Skip balance-like large amounts and check reasonable range
+          if (candidateAmount > 0 && candidateAmount < 50000) {
             amount = candidateAmount
             break
           }
@@ -903,22 +931,44 @@ function parseBarclaysTransactions(text: string): Transaction[] {
         const date = `${currentYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
 
         // Check if we already have this transaction (avoid duplicates)
-        const exists = transactions.some(t =>
+        const amountKey = `${date}-${amount}`
+        const exists = processedAmounts.has(amountKey) || transactions.some(t =>
           t.date === date && Math.abs(t.amount - amount) < 0.01
         )
 
         if (!exists) {
+          // Build description from context
+          let description = line.trim()
+
+          // If line is just a date or amount, look for description in nearby lines
+          if (description.match(/^\d{1,2}\s+[A-Z][a-z]{2}$/) || description.match(/^[\d,]+\.\d{2}$/)) {
+            for (let k = Math.max(0, i - 3); k <= Math.min(lines.length - 1, i + 3); k++) {
+              const nearbyLine = lines[k].trim()
+              if (nearbyLine.match(/(Payment|Debit|Transfer|Direct|Card|Purchase|Standing Order)/i)) {
+                description = nearbyLine
+                break
+              }
+            }
+          }
+
+          // Determine type based on description keywords
+          const lowerDesc = description.toLowerCase()
+          const isCredit = lowerDesc.includes('received') || lowerDesc.includes('credit') ||
+                          lowerDesc.includes('refund') || lowerDesc.includes('interest') ||
+                          lowerDesc.includes('transfer from')
+
           const transaction: Transaction = {
             id: transactionId.toString(),
             date,
-            description: line.substring(0, 100).trim(),
+            description: description.substring(0, 100).trim() || 'Bank Transaction',
             amount: amount,
-            type: 'debit',
+            type: isCredit ? 'credit' : 'debit',
             balance: undefined
           }
 
           transactions.push(transaction)
-          console.log(`   ➕ Added missed transaction #${transactionId}: ${date} ${line.substring(0, 30)}... £${amount}`)
+          processedAmounts.add(amountKey)
+          console.log(`   ➕ Added missed transaction #${transactionId}: ${date} ${description.substring(0, 30)}... £${amount}`)
           transactionId++
         }
       }
@@ -1696,6 +1746,268 @@ function parseMarcusTransactions(text: string): Transaction[] {
   return transactions
 }
 
+// CAF Bank (Charities Aid Foundation) parser
+function parseCAFTransactions(text: string): Transaction[] {
+  const transactions: Transaction[] = []
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+  let transactionId = 1
+
+  // Extract year from statement header (e.g., "Statement Period: 01 Jan 2024 - 31 Jan 2024")
+  let statementYear = new Date().getFullYear().toString()
+  const yearMatch = text.match(/(?:Statement Period|Statement Date|Period)[:\s]+.*?(\d{4})/i)
+  if (yearMatch) {
+    statementYear = yearMatch[1]
+  }
+
+  // CAF-specific transaction patterns
+  const cafPatterns = [
+    // Pattern 1: DD MMM YYYY Description Amount (standard format)
+    /^(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})\s+(.+?)\s+([\d,]+\.\d{2})\s*(CR|DR)?$/i,
+    // Pattern 2: DD MMM Description Amount (no year)
+    /^(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\s+(.+?)\s+([\d,]+\.\d{2})\s*(CR|DR)?$/i,
+    // Pattern 3: DD/MM/YYYY Description Amount
+    /^(\d{2}\/\d{2}\/\d{4})\s+(.+?)\s+([\d,]+\.\d{2})\s*(CR|DR)?$/,
+    // Pattern 4: YYYY-MM-DD Description Amount (ISO format)
+    /^(\d{4}-\d{2}-\d{2})\s+(.+?)\s+([\d,]+\.\d{2})\s*(CR|DR)?$/,
+    // Pattern 5: Flexible - Date Description Amount Balance
+    /^(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:\s+\d{2,4})?)\s+(.+?)\s+([\d,]+\.\d{2})\s+[\d,]+\.\d{2}\s*(CR|DR)?$/i
+  ]
+
+  // Keywords indicating credit (money coming in)
+  const creditKeywords = [
+    'grant', 'donation', 'income', 'received', 'deposit', 'interest',
+    'transfer in', 'credit', 'refund', 'bacs credit', 'faster payment in',
+    'standing order in', 'gift aid', 'funding', 'settlement'
+  ]
+
+  // Keywords indicating debit (money going out)
+  const debitKeywords = [
+    'payment', 'direct debit', 'withdrawal', 'transfer out', 'charge',
+    'fee', 'bacs debit', 'faster payment out', 'standing order out',
+    'card payment', 'chq', 'cheque', 'debit'
+  ]
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    // Skip header lines and non-transaction lines
+    if (line.match(/^(Date|Description|Amount|Balance|Transaction|Account|Statement|Page|\d{2}-\d{2}-\d{2}$|Sort Code)/i)) {
+      continue
+    }
+
+    // Skip lines that are just numbers (likely balance columns)
+    if (line.match(/^[\d,]+\.\d{2}$/)) {
+      continue
+    }
+
+    for (const pattern of cafPatterns) {
+      const match = line.match(pattern)
+      if (match) {
+        let dateStr = match[1]
+        const description = match[2].trim()
+        const amountStr = match[3]
+        const explicitType = match[4]?.toUpperCase()
+
+        // Skip balance lines or summary lines
+        if (description.match(/^(balance|brought forward|carried forward|opening|closing|total)/i)) {
+          continue
+        }
+
+        // Normalize date to YYYY-MM-DD format
+        let date: string | null = null
+
+        if (dateStr.includes('/')) {
+          // DD/MM/YYYY format
+          const [day, month, year] = dateStr.split('/')
+          date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+        } else if (dateStr.includes('-')) {
+          // Already YYYY-MM-DD
+          date = dateStr
+        } else {
+          // DD MMM or DD MMM YYYY format
+          const dateParts = dateStr.split(/\s+/)
+          const day = dateParts[0].padStart(2, '0')
+          const monthStr = dateParts[1].toLowerCase()
+          const year = dateParts[2] || statementYear
+
+          const monthMap: Record<string, string> = {
+            jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+            jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+          }
+          const month = monthMap[monthStr]
+
+          if (month) {
+            const fullYear = year.length === 2 ? `20${year}` : year
+            date = `${fullYear}-${month}-${day}`
+          }
+        }
+
+        if (!date) continue
+
+        const amount = parseFloat(amountStr.replace(/,/g, ''))
+
+        // Determine transaction type
+        let type: 'debit' | 'credit'
+        if (explicitType === 'CR') {
+          type = 'credit'
+        } else if (explicitType === 'DR') {
+          type = 'debit'
+        } else {
+          // Infer from description
+          const lowerDesc = description.toLowerCase()
+          if (creditKeywords.some(kw => lowerDesc.includes(kw))) {
+            type = 'credit'
+          } else if (debitKeywords.some(kw => lowerDesc.includes(kw))) {
+            type = 'debit'
+          } else {
+            // Default to debit if unclear (most charity transactions are payments)
+            type = 'debit'
+          }
+        }
+
+        // Check for duplicates
+        const isDuplicate = transactions.some(
+          t => t.date === date && t.amount === amount && t.description === description
+        )
+
+        if (!isDuplicate) {
+          transactions.push({
+            id: transactionId.toString(),
+            date,
+            description,
+            amount,
+            type,
+            balance: undefined
+          })
+          transactionId++
+        }
+
+        break // Found a match, move to next line
+      }
+    }
+  }
+
+  // If no transactions found with strict patterns, try a more flexible approach
+  if (transactions.length === 0) {
+    console.log('CAF: Strict patterns found no transactions, trying flexible parsing...')
+    return parseCAFTransactionsFlexible(text, statementYear)
+  }
+
+  return transactions
+}
+
+// Flexible CAF parser for non-standard formats
+function parseCAFTransactionsFlexible(text: string, statementYear: string): Transaction[] {
+  const transactions: Transaction[] = []
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+  let transactionId = 1
+
+  // Look for any line with a date and amount
+  const datePattern = /(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:\s+\d{2,4})?|\d{2}\/\d{2}\/\d{4}|\d{4}-\d{2}-\d{2})/i
+  const amountPattern = /([\d,]+\.\d{2})/g
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+
+    // Skip obviously non-transaction lines
+    if (line.length < 10 || line.match(/^(Page|Statement|Account|Sort Code|Date|Balance|Total)/i)) {
+      continue
+    }
+
+    const dateMatch = line.match(datePattern)
+    if (!dateMatch) continue
+
+    // Find all amounts on the line
+    const amounts: string[] = []
+    let amountMatch
+    const amountRegex = /([\d,]+\.\d{2})/g
+    while ((amountMatch = amountRegex.exec(line)) !== null) {
+      amounts.push(amountMatch[1])
+    }
+
+    if (amounts.length === 0) continue
+
+    // Extract the first amount as the transaction amount (second is usually balance)
+    const amountStr = amounts[0]
+    const amount = parseFloat(amountStr.replace(/,/g, ''))
+
+    // Extract description (text between date and first amount)
+    let dateStr = dateMatch[1]
+    const dateEndPos = (dateMatch.index || 0) + dateMatch[0].length
+    const amountPos = line.indexOf(amountStr)
+    let description = line.substring(dateEndPos, amountPos).trim()
+
+    // If description is empty, try to get it from surrounding context
+    if (!description || description.length < 3) {
+      // Look at next line for description continuation
+      if (i + 1 < lines.length && !lines[i + 1].match(datePattern)) {
+        description = lines[i + 1].trim()
+      }
+    }
+
+    if (!description || description.length < 2) {
+      description = 'Transaction'
+    }
+
+    // Normalize date
+    let date: string | null = null
+    if (dateStr.includes('/')) {
+      const [day, month, year] = dateStr.split('/')
+      date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    } else if (dateStr.includes('-')) {
+      date = dateStr
+    } else {
+      const dateParts = dateStr.split(/\s+/)
+      const day = dateParts[0].padStart(2, '0')
+      const monthStr = dateParts[1]?.toLowerCase()
+      const year = dateParts[2] || statementYear
+
+      const monthMap: Record<string, string> = {
+        jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+        jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+      }
+      const month = monthMap[monthStr]
+      if (month) {
+        const fullYear = year.length === 2 ? `20${year}` : year
+        date = `${fullYear}-${month}-${day}`
+      }
+    }
+
+    if (!date) continue
+
+    // Determine type from description
+    const lowerDesc = description.toLowerCase()
+    let type: 'debit' | 'credit' = 'debit'
+    if (lowerDesc.match(/grant|donation|income|received|credit|refund|interest|gift aid/)) {
+      type = 'credit'
+    }
+    if (line.toUpperCase().includes('CR')) {
+      type = 'credit'
+    }
+    if (line.toUpperCase().includes('DR')) {
+      type = 'debit'
+    }
+
+    const isDuplicate = transactions.some(
+      t => t.date === date && t.amount === amount
+    )
+
+    if (!isDuplicate) {
+      transactions.push({
+        id: transactionId.toString(),
+        date,
+        description,
+        amount,
+        type,
+        balance: undefined
+      })
+      transactionId++
+    }
+  }
+
+  return transactions
+}
+
 // Universal parser that routes to specific bank parsers
 export async function parseUniversalBankStatement(buffer: Buffer, fileName: string): Promise<ParsedBankStatement> {
   try {
@@ -1788,6 +2100,11 @@ export async function parseUniversalBankStatement(buffer: Buffer, fileName: stri
         break
       case 'marcus':
         transactions = parseMarcusTransactions(pdfData.text)
+        break
+      case 'caf':
+        // CAF Bank (Charities Aid Foundation) parsing with tabula fallback
+        const cafTabula = await parseWithTabulaFallback(pdfData.text, buffer, detection.bankName)
+        transactions = cafTabula.length > 0 ? cafTabula : parseCAFTransactions(pdfData.text)
         break
       default:
         // Try generic parsing for unknown banks

@@ -298,6 +298,7 @@ export default function BillingPage() {
               plan={plan}
               paymentLink={plan.paymentLink}
               isCurrentPlan={plan.tier === currentTier}
+              isAuthenticated={true}
             />
           ))}
         </div>

@@ -1,4 +1,7 @@
-import { Check, Zap } from 'lucide-react'
+'use client'
+
+import { useState } from 'react'
+import { Check, Zap, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -15,10 +18,43 @@ interface PricingCardProps {
   plan: PlanFeatures
   paymentLink?: string
   isCurrentPlan?: boolean
+  isAuthenticated?: boolean
 }
 
-export function PricingCard({ plan, paymentLink, isCurrentPlan = false }: PricingCardProps) {
+export function PricingCard({
+  plan,
+  paymentLink,
+  isCurrentPlan = false,
+  isAuthenticated = false,
+}: PricingCardProps) {
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const isFree = plan.tier === 'free'
+
+  const handleAuthenticatedCheckout = async () => {
+    setCheckoutLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/checkout/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: plan.tier }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session')
+      }
+
+      // Redirect to Stripe checkout
+      window.location.href = data.url
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Checkout failed')
+      setCheckoutLoading(false)
+    }
+  }
 
   return (
     <Card
@@ -64,30 +100,48 @@ export function PricingCard({ plan, paymentLink, isCurrentPlan = false }: Pricin
         </ul>
       </CardContent>
 
-      <CardFooter>
+      <CardFooter className="flex flex-col gap-2">
+        {error && (
+          <p className="text-sm text-red-500 text-center w-full">{error}</p>
+        )}
         {isCurrentPlan ? (
-          <Button
-            className="w-full"
-            variant="outline"
-            disabled
-          >
+          <Button className="w-full" variant="outline" disabled>
             Current Plan
           </Button>
         ) : isFree ? (
           <Link href="/auth/signup" className="w-full">
-            <Button
-              className="w-full bg-uk-blue-600 hover:bg-uk-blue-700"
-            >
+            <Button className="w-full bg-uk-blue-600 hover:bg-uk-blue-700">
               Get Started Free
             </Button>
           </Link>
+        ) : isAuthenticated ? (
+          <Button
+            className={`w-full ${
+              plan.mostPopular ? 'bg-uk-blue-600 hover:bg-uk-blue-700' : ''
+            }`}
+            variant={plan.mostPopular ? 'default' : 'outline'}
+            onClick={handleAuthenticatedCheckout}
+            disabled={checkoutLoading}
+          >
+            {checkoutLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Subscribe Now'
+            )}
+          </Button>
         ) : paymentLink ? (
-          <a href={paymentLink} className="w-full" target="_blank" rel="noopener noreferrer">
+          <a
+            href={paymentLink}
+            className="w-full"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <Button
               className={`w-full ${
-                plan.mostPopular
-                  ? 'bg-uk-blue-600 hover:bg-uk-blue-700'
-                  : ''
+                plan.mostPopular ? 'bg-uk-blue-600 hover:bg-uk-blue-700' : ''
               }`}
               variant={plan.mostPopular ? 'default' : 'outline'}
             >
@@ -95,13 +149,16 @@ export function PricingCard({ plan, paymentLink, isCurrentPlan = false }: Pricin
             </Button>
           </a>
         ) : (
-          <Button
-            className="w-full"
-            variant="outline"
-            disabled
-          >
-            Coming Soon
-          </Button>
+          <Link href="/auth/signup" className="w-full">
+            <Button
+              className={`w-full ${
+                plan.mostPopular ? 'bg-uk-blue-600 hover:bg-uk-blue-700' : ''
+              }`}
+              variant={plan.mostPopular ? 'default' : 'outline'}
+            >
+              Sign Up to Subscribe
+            </Button>
+          </Link>
         )}
       </CardFooter>
     </Card>
