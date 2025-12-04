@@ -1,17 +1,30 @@
 import Stripe from 'stripe'
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set in environment variables')
+// Lazy initialization to avoid build-time errors when env vars aren't available
+let _stripe: Stripe | null = null
+
+function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY is not set in environment variables')
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-10-29.clover',
+      typescript: true,
+      appInfo: {
+        name: 'ConvertBank Statement Converter',
+        version: '1.0.0',
+        url: 'https://convertbank-statement.com',
+      },
+    })
+  }
+  return _stripe
 }
 
-// Initialize Stripe with secret key
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-10-29.clover', // Latest API version
-  typescript: true,
-  appInfo: {
-    name: 'ConvertBank Statement Converter',
-    version: '1.0.0',
-    url: 'https://convertbank-statement.com',
+// Export a proxy that lazily initializes Stripe
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    return getStripe()[prop as keyof Stripe]
   },
 })
 
