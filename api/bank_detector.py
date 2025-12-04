@@ -90,6 +90,15 @@ def detect_uk_bank(pdf_text: str) -> str:
             'tide platform',
             'tide.co',
             'tide'
+        ],
+        'caf': [
+            'charities aid foundation',
+            'caf bank limited',
+            'caf bank',
+            'cafbank.org',
+            'caf charity account',
+            'charity account',
+            'caf'
         ]
     }
     
@@ -135,6 +144,7 @@ def get_bank_display_name(bank_id: str) -> str:
         'revolut': 'Revolut',
         'anna': 'ANNA Money',
         'tide': 'Tide',
+        'caf': 'CAF Bank',
         'unknown': 'Unknown Bank'
     }
     

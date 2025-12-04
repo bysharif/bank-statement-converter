@@ -31,6 +31,30 @@ function DashboardContent() {
 
     fetchStats()
   }, [user?.id, refreshKey])
+
+  // Check for pending subscription linking on dashboard load
+  useEffect(() => {
+    async function checkPendingSubscription() {
+      if (user?.id) {
+        try {
+          const response = await fetch('/api/subscription/link-pending', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          })
+          const result = await response.json()
+          if (result.linked) {
+            // Subscription was linked - refresh the page to show updated tier
+            triggerRefresh()
+          }
+        } catch (error) {
+          // Silent fail - don't disrupt user experience
+          console.error('Failed to check pending subscription:', error)
+        }
+      }
+    }
+
+    checkPendingSubscription()
+  }, [user?.id]) // Only run once on mount
   return (
     <>
       {/* Stats Section */}

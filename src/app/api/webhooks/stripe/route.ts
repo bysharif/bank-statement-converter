@@ -112,18 +112,43 @@ async function handleCheckoutCompleted(
 
   if (!userId) {
     // Try to find user by customer email
-    const supabase = await createClient()
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', session.customer_details?.email)
-      .single()
+    const customerEmail = session.customer_details?.email
 
-    if (!profile) {
-      console.error('Could not find user for checkout session')
+    if (!customerEmail) {
+      console.error('No customer email in checkout session')
       return
     }
 
+    const supabase = await createClient()
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .eq('email', customerEmail)
+      .single()
+
+    if (profileError || !profile) {
+      // If user doesn't exist yet, they may have paid before signing up
+      // Store the customer ID temporarily and log for manual resolution
+      console.error(`Could not find user for checkout session. Email: ${customerEmail}, Customer ID: ${customerId}`)
+      console.log('User may need to sign up with this email or subscription needs manual linking')
+
+      // Try to get customer from Stripe and update metadata for later linking
+      try {
+        await stripe.customers.update(customerId, {
+          metadata: {
+            pending_email: customerEmail,
+            checkout_session_id: session.id,
+            needs_linking: 'true'
+          }
+        })
+        console.log(`Marked Stripe customer ${customerId} as needing linking`)
+      } catch (updateError) {
+        console.error('Failed to update Stripe customer metadata:', updateError)
+      }
+      return
+    }
+
+    console.log(`Found user ${profile.id} for email ${customerEmail}`)
     await handleSubscriptionCreated(subscription, profile.id, customerId)
   } else {
     await handleSubscriptionCreated(subscription, userId, customerId)

@@ -8,10 +8,33 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
-    if (!error) {
+    if (!error && data.user) {
       // Successfully confirmed email and logged in
+
+      // Send welcome email (fire and forget)
+      try {
+        const userName = data.user.user_metadata?.first_name ||
+                        data.user.user_metadata?.full_name ||
+                        data.user.email?.split('@')[0]
+
+        await fetch(`${origin}/api/email/auth/welcome`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: data.user.email,
+            name: userName,
+          }),
+        })
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError)
+        // Don't block redirect if email fails
+      }
+
+      // Note: Pending subscription linking is now handled on dashboard load
+      // This ensures the user is fully authenticated before checking
+
       // Redirect to dashboard
       return NextResponse.redirect(`${origin}/dashboard`)
     }
