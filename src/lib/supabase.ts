@@ -1,12 +1,8 @@
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-
 /**
- * Create a Supabase client for client components
- * Use this in 'use client' components
+ * Re-export the Supabase client from the centralized location
+ * This ensures all client-side code uses the same singleton instance
  */
-export const createClient = () => {
-  return createClientComponentClient()
-}
+export { createClient, resetClient } from '@/lib/supabase/client'
 
 /**
  * Database Types
