@@ -117,12 +117,31 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
         formData.append('files', job.file)
       })
 
-      // Call API once to process all files
-      const response = await fetch('/api/process-pdfs', {
-        method: 'POST',
-        body: formData,
-      })
+      // Set up AbortController for timeout handling (4 minutes)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => {
+        controller.abort()
+      }, 240000) // 4 minutes
 
+      // Call API once to process all files
+      let response: Response
+      try {
+        response = await fetch('/api/process-pdfs', {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        })
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+        clearInterval(progressInterval)
+
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Processing timeout. Large PDFs may take longer than expected. Please try again or contact support if the issue persists.')
+        }
+        throw fetchError
+      }
+
+      clearTimeout(timeoutId)
       clearInterval(progressInterval)
 
       if (!response.ok) {

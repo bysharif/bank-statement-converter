@@ -17,7 +17,7 @@ export interface ParseOptions {
 export class AIBankStatementParser {
   private client: Anthropic;
   private readonly MAX_RETRIES = 3;
-  private readonly TIMEOUT_MS = 60000;
+  private readonly TIMEOUT_MS = 240000; // 4 minutes - allows time for large PDFs
 
   constructor(apiKey?: string) {
     const key = apiKey || process.env.ANTHROPIC_API_KEY;
@@ -51,7 +51,8 @@ export class AIBankStatementParser {
       const prompt = this.createParsingPrompt();
 
       // Claude 3.5 Haiku max output tokens: 8,192
-      // This can handle ~300-400 transactions (sufficient for most statements)
+      // This can handle ~300-400 transactions (sufficient for most monthly statements)
+      // For extremely large statements, the Python parser should be used as primary
       const maxTokens = options?.maxTokens || 8192;
 
       const response = await this.callClaudeWithRetry(base64PDF, prompt, maxTokens);
@@ -89,36 +90,41 @@ export class AIBankStatementParser {
 
 **CRITICAL REQUIREMENTS:**
 
-1. **Extract ALL transactions** - Do not skip any transactions, even if they seem unclear
+1. **Extract ALL transactions from ALL pages** - This statement may have 10+ pages with 100+ transactions. You MUST extract every single transaction across all pages. Do not skip any pages or transactions.
+
 2. **CSV Format** - Return ONLY the CSV data, no explanations or additional text
+
 3. **Column Headers** (first row):
    Date,Description,Debit,Credit,Balance
 
 4. **Column Rules:**
-   - Date: Use DD/MM/YYYY format (e.g., 15/03/2024)
-   - Description: Keep the full transaction description, remove extra whitespace
+   - Date: Use DD/MM/YYYY format (e.g., 15/03/2024). If the statement only shows "DD MMM" (e.g., "03 Apr"), use the year from the statement header.
+   - Description: Keep the transaction description concise but complete. For long descriptions (e.g., foreign currency transactions with exchange rate details), keep the main merchant/payee name and transaction type.
    - Debit: Money OUT of the account (payments, withdrawals, transfers out) - number only, no currency symbol
    - Credit: Money INTO the account (deposits, salary, refunds, transfers in) - number only, no currency symbol
-   - Balance: Running balance after transaction (if available, otherwise leave empty)
+   - Balance: Running balance after transaction (if available, otherwise leave empty). Note: Barclays and some banks only show balance periodically, not for every transaction.
 
 5. **IMPORTANT - Debit vs Credit Classification:**
    **DEBIT (Money Out):**
    - Direct Debit to...
-   - Card Payment to...
+   - Card Payment to... (this is ALWAYS a debit/payment OUT)
+   - Card Purchase... (this is ALWAYS a debit/payment OUT)
    - Payment to...
    - Transfer to...
+   - Bill Payment to...
    - Withdrawal
-   - Bill Payment
    - Standing Order to...
    - Cash withdrawal
    - Fee, Charge, Interest charged
+   - Blue Rewards Fee
 
    **CREDIT (Money In):**
-   - Received from...
+   - Received from... / Received From...
    - Salary from...
-   - Transfer from...
+   - Transfer from... / Transfer From...
+   - Bill Payment From... (money IN, not out)
    - Deposit
-   - Refund
+   - Refund / Card Refund
    - Cashback
    - Interest received
    - Payment received
@@ -133,24 +139,34 @@ export class AIBankStatementParser {
    - Preserve the chronological order of transactions
    - NEVER put the same transaction in both Debit and Credit columns
 
-7. **Handling Edge Cases:**
-   - Skip header rows, footer information, account summaries
+7. **Multi-Page Statements:**
+   - Continue extracting from EVERY page
+   - Watch for "Continued" markers - these indicate transactions continue on next page
+   - Do NOT stop at page breaks or footer text
+   - The statement may span 10+ pages - extract ALL transactions
+
+8. **Handling Edge Cases:**
+   - Skip header rows, footer information, account summaries ("At a glance", "Your balances")
    - Skip opening/closing balance rows unless they're actual transactions
-   - "Start balance" or "Opening balance" = Credit (if positive)
-   - If balance is not shown, leave the Balance column empty
-   - Clean up descriptions: remove multiple spaces, newlines, special characters
+   - "Start balance" or "End balance" rows should be included as information
+   - If balance is not shown for a transaction, leave the Balance column empty
+   - Clean up descriptions: remove extra whitespace, but keep them readable
+   - Foreign currency transactions: Extract the GBP amount, not the original currency
 
 **Example Output:**
 Date,Description,Debit,Credit,Balance
-01/04/2024,"Start balance",,123.92,123.92
-03/04/2024,"Direct Debit to V12 Finance",38.70,,85.22
-03/04/2024,"Received from Employer",,2500.00,2585.22
-05/04/2024,"Card Payment at Tesco",67.89,,2517.33
+01/04/2024,Start balance,,,123.92
+03/04/2024,Direct Debit to V12 Finance,38.70,,
+03/04/2024,Direct Debit to David Lloyd,189.00,,
+03/04/2024,Card Payment to Amazon Prime,8.99,,
+03/04/2024,Received from Maintenance Proper,,641.19,
+03/04/2024,"Transfer From Sort Code 20-45-41",,10.00,1583.99
 
 **Remember:**
 - Return ONLY the CSV data
 - Start with the header row
 - No explanations, no markdown code blocks
+- Extract from ALL pages (this statement may have 100+ transactions)
 - PAY CAREFUL ATTENTION to whether money is going IN (Credit) or OUT (Debit)`;
   }
 
@@ -161,7 +177,15 @@ Date,Description,Debit,Credit,Balance
     retryCount = 0
   ): Promise<any> {
     try {
-      const message = await this.client.messages.create({
+      // Create timeout promise to prevent hanging indefinitely
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Claude API timeout after ${this.TIMEOUT_MS / 1000} seconds. The PDF may be too large or complex.`));
+        }, this.TIMEOUT_MS);
+      });
+
+      // Race between Claude API call and timeout
+      const apiPromise = this.client.messages.create({
         model: 'claude-3-5-haiku-20241022', // Fastest Claude model
         max_tokens: maxTokens,
         temperature: 0, // Deterministic output for consistency
@@ -186,9 +210,16 @@ Date,Description,Debit,Credit,Balance
         ],
       });
 
+      const message = await Promise.race([apiPromise, timeoutPromise]);
       return message;
 
     } catch (error: any) {
+      // Check if it's a timeout error
+      if (error.message?.includes('timeout')) {
+        console.error('⏰ Claude API timeout:', error.message);
+        throw error;
+      }
+
       if (retryCount < this.MAX_RETRIES) {
         if (error.status === 429 || error.status === 529) {
           const delay = Math.pow(2, retryCount) * 1000;

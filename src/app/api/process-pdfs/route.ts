@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AIBankStatementParser } from '@/lib/ai-parser'
+import { parsePDFWithPython, ParsedTransaction } from '@/lib/python-parser'
 import { createClient } from '@/lib/supabase/server'
 import { canUserConvert, incrementConversionCount, getUserSubscription } from '@/lib/subscription'
 
-export const maxDuration = 60;
+export const maxDuration = 300; // 5 minutes - Vercel Pro allows up to 300s
 
 // Convert DD/MM/YYYY or MM/DD/YYYY to YYYY-MM-DD format for PostgreSQL
 function convertToISODate(dateStr: string): string {
@@ -97,11 +98,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Process each PDF file with AI
-    const parser = new AIBankStatementParser()
+    // Process each PDF file - try Python parser first, fall back to AI
+    const aiParser = new AIBankStatementParser()
     const allTransactions: any[] = []
     const errors: string[] = []
     let totalTokens = 0
+    let parsingMethod = 'unknown'
 
     for (const file of files) {
       try {
@@ -114,17 +116,70 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
 
-        // Parse with AI
-        const result = await parser.parsePDF(buffer, file.name, {
-          userTier: subscription.tier.toUpperCase() as 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'BUSINESS'
-        })
+        let transactions: any[] = []
+        let parseSuccess = false
 
-        if (result.success) {
-          const transactions = parser.parseCSVToTransactions(result.csvContent)
+        // ============================================
+        // LAYER 1: Try Python parser first (faster, specialized)
+        // Supports: Barclays, Wise, Monzo, Lloyds, Revolut, HSBC, ANNA, Santander, NatWest
+        // ============================================
+        try {
+          console.log(`🐍 [${file.name}] Attempting Python parser...`)
+          const pythonResult = await parsePDFWithPython(buffer, {
+            userTier: subscription.tier.toUpperCase() as 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE'
+          })
+
+          if (pythonResult.success && pythonResult.transactions.length > 0) {
+            console.log(`✅ [${file.name}] Python parser succeeded: ${pythonResult.transactionCount} transactions from ${pythonResult.bankName}`)
+
+            // Convert Python transactions to our format
+            transactions = pythonResult.transactions.map((tx: ParsedTransaction, index: number) => ({
+              id: `txn_${index + 1}`,
+              date: tx.date,
+              description: tx.description,
+              amount: tx.amount,
+              type: tx.type === 'credit' || tx.type === 'income' ? 'credit' : 'debit',
+              balance: tx.balance,
+            }))
+
+            parseSuccess = true
+            parsingMethod = 'python'
+          } else {
+            console.log(`⚠️ [${file.name}] Python parser returned no transactions: ${pythonResult.error || 'unknown reason'}`)
+          }
+        } catch (pythonError: any) {
+          // Python parser failed or unavailable - this is expected for unsupported banks
+          if (pythonError.message === 'PYTHON_PARSER_UNAVAILABLE') {
+            console.log(`ℹ️ [${file.name}] Python parser unavailable (unsupported bank), falling back to AI`)
+          } else {
+            console.log(`⚠️ [${file.name}] Python parser error: ${pythonError.message}, falling back to AI`)
+          }
+        }
+
+        // ============================================
+        // LAYER 2: Fall back to AI parser if Python failed
+        // Handles all banks, encrypted PDFs, unknown formats
+        // ============================================
+        if (!parseSuccess) {
+          console.log(`🤖 [${file.name}] Using AI parser...`)
+          const aiResult = await aiParser.parsePDF(buffer, file.name, {
+            userTier: subscription.tier.toUpperCase() as 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'BUSINESS'
+          })
+
+          if (aiResult.success) {
+            transactions = aiParser.parseCSVToTransactions(aiResult.csvContent)
+            totalTokens += aiResult.tokensUsed || 0
+            parseSuccess = true
+            parsingMethod = 'ai-claude'
+            console.log(`✅ [${file.name}] AI parser succeeded: ${transactions.length} transactions`)
+          } else {
+            errors.push(`${file.name}: ${aiResult.error}`)
+            console.log(`❌ [${file.name}] AI parser failed: ${aiResult.error}`)
+          }
+        }
+
+        if (parseSuccess) {
           allTransactions.push(...transactions)
-          totalTokens += result.tokensUsed || 0
-        } else {
-          errors.push(`${file.name}: ${result.error}`)
         }
       } catch (error) {
         console.error(`Error processing ${file.name}:`, error)
@@ -218,7 +273,8 @@ export async function POST(request: NextRequest) {
       },
       metadata: {
         tokensUsed: totalTokens,
-        method: 'ai-claude-batch',
+        method: parsingMethod === 'python' ? 'python-specialized' : 'ai-claude-fallback',
+        parserUsed: parsingMethod,
       },
       errors: errors.length > 0 ? errors : undefined
     })
