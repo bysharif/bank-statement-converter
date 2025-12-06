@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
 import { SiteHeader } from "@/components/dashboard/site-header"
+import { UpgradeBanner } from "@/components/dashboard/upgrade-banner"
 import {
   SidebarInset,
   SidebarProvider,
@@ -51,6 +52,7 @@ export default function DashboardLayout({
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <SidebarInset className="flex-1 flex flex-col min-w-0">
+          <UpgradeBanner />
           <SiteHeader />
           <div className="flex flex-1 flex-col gap-4 p-4">
             {children}

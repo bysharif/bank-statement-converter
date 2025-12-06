@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Upload, FileText, CheckCircle2, XCircle, Clock, Download, AlertCircle } from "lucide-react"
+import { UpgradeLimitModal } from './upgrade-limit-modal'
 
 interface FileProcessingJob {
   id: string
@@ -49,6 +50,7 @@ interface DashboardUploadProps {
 export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [batchState, setBatchState] = useState<BatchState | null>(null)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return bytes + ' B'
@@ -153,7 +155,8 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
         }
         
         if (response.status === 403) {
-          // Subscription limit reached
+          // Subscription limit reached - show upgrade modal
+          setShowUpgradeModal(true)
           throw new Error(errorData.message || 'Monthly conversion limit reached. Please upgrade your plan.')
         }
         
@@ -403,6 +406,11 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
     const totalTransactions = files.reduce((sum, f) => sum + (f.result?.transactionCount || 0), 0)
 
     return (
+      <>
+      <UpgradeLimitModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
       <Card className="border-2">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -482,11 +490,17 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
           </div>
         </CardContent>
       </Card>
+      </>
     )
   }
 
   // Upload State
   return (
+    <>
+      <UpgradeLimitModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     <Card className="border-2 border-dashed border-uk-blue-300 bg-gradient-to-br from-uk-blue-50 to-white min-h-[32vh] flex flex-col">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold text-uk-blue-600">
@@ -550,5 +564,6 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
         </div>
       </CardContent>
     </Card>
+    </>
   )
 }
