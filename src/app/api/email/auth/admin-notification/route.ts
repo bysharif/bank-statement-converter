@@ -63,10 +63,11 @@ export async function POST(request: NextRequest) {
     console.log(`📧 Attempting to send admin notification to ${ADMIN_EMAIL} for new signup: ${email}`)
     
     const { data, error: sendError } = await resend.emails.send({
-      from: 'Bank Statement Converter <notifications@convertbank-statement.com>',
+      from: 'Bank Statement Converter <support@convertbank-statement.com>',
       to: ADMIN_EMAIL,
       subject: `🎉 New Signup: ${email}`,
       html: emailHtml,
+      replyTo: email, // Allow replying directly to the new user
     })
 
     if (sendError) {
