@@ -290,16 +290,15 @@ export async function POST(request: NextRequest) {
 
 // Helper to generate CSV from multiple files
 function generateBatchCSV(transactions: any[]): string {
-  const headerLine = 'Date,Description,Debit,Credit,Balance'
+  const headerLine = 'Date,Description,Debit,Credit'
   const csvLines = [headerLine]
 
   transactions.forEach(txn => {
     const debit = txn.type === 'debit' ? txn.amount.toFixed(2) : ''
     const credit = txn.type === 'credit' ? txn.amount.toFixed(2) : ''
-    const balance = txn.balance ? txn.balance.toFixed(2) : ''
     const description = txn.description.includes(',') ? `"${txn.description}"` : txn.description
 
-    csvLines.push(`${txn.date},${description},${debit},${credit},${balance}`)
+    csvLines.push(`${txn.date},${description},${debit},${credit}`)
   })
 
   return csvLines.join('\n')

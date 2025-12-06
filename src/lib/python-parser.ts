@@ -172,17 +172,16 @@ export async function parsePDFWithPython(
 export function generateCSVFromPythonTransactions(
   transactions: ParsedTransaction[]
 ): string {
-  const lines = ['Date,Description,Debit,Credit,Balance'];
+  const lines = ['Date,Description,Debit,Credit'];
 
   transactions.forEach((tx) => {
     const debit = tx.type === 'debit' ? tx.amount.toFixed(2) : '';
     const credit = tx.type === 'credit' ? tx.amount.toFixed(2) : '';
-    const balance = tx.balance?.toFixed(2) || '';
-    const description = tx.description.includes(',') 
-      ? `"${tx.description}"` 
+    const description = tx.description.includes(',')
+      ? `"${tx.description}"`
       : tx.description;
 
-    lines.push(`${tx.date},${description},${debit},${credit},${balance}`);
+    lines.push(`${tx.date},${description},${debit},${credit}`);
   });
 
   return lines.join('\n');

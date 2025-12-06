@@ -237,10 +237,16 @@ class BarclaysParser(BaseBankParser):
                 
             if date_match:
                 date_str = date_match.group(1)
-                
-                # Skip balance lines
-                text_after_date = line[date_match.end():].strip().lower()
-                if 'start balance' in text_after_date or 'end balance' in text_after_date:
+
+                # Skip balance lines (comprehensive check)
+                line_lower = line.lower()
+                words = line_lower.split()
+                is_balance_line = (
+                    'start balance' in line_lower or
+                    'end balance' in line_lower or
+                    (words and words[-1] == 'balance')
+                )
+                if is_balance_line:
                     i += 1
                     continue
                 
@@ -582,10 +588,25 @@ class BarclaysParser(BaseBankParser):
         is_income = False
         category = 'other'
         
+        # INCOME INDICATORS - Check these FIRST (more specific patterns)
+        # "Bill Payment FROM" and "Transfer FROM" are money IN, not OUT
+        income_patterns = [
+            (['bill payment from'], 'credit', 0.98),  # CRITICAL: Bill Payment FROM = money IN
+            (['received from', 'received'], 'credit', 0.95),
+            (['payment from'], 'credit', 0.90),
+            (['transfer from'], 'transfer', 0.90),
+            (['salary', 'wage'], 'salary', 0.95),
+            (['deposit'], 'deposit', 0.90),
+            (['card refund', 'refund'], 'refund', 0.95),  # Refunds are income
+            (['credit'], 'credit', 0.75),
+        ]
+
         # EXPENSE INDICATORS (Priority: Higher confidence for more specific matches)
+        # Note: "Bill Payment TO" is expense, "Bill Payment FROM" is income (checked above)
         expense_patterns = [
             (['direct debit', 'dd'], 'direct_debit', 0.95),
-            (['bill payment'], 'bill_payment', 0.95),
+            (['bill payment to'], 'bill_payment', 0.95),  # Bill Payment TO = money OUT
+            (['bill payment'], 'bill_payment', 0.85),  # Generic bill payment (assume expense if no FROM/TO)
             (['card payment', 'card purchase'], 'card_payment', 0.90),
             (['standing order'], 'standing_order', 0.95),
             (['transfer to'], 'transfer', 0.85),
@@ -593,42 +614,35 @@ class BarclaysParser(BaseBankParser):
             (['debit'], 'debit', 0.70),
         ]
         
-        # INCOME INDICATORS
-        income_patterns = [
-            (['received from', 'received'], 'credit', 0.90),
-            (['payment from'], 'credit', 0.85),
-            (['transfer from'], 'transfer', 0.85),
-            (['salary', 'wage'], 'salary', 0.95),
-            (['deposit'], 'deposit', 0.90),
-            (['credit'], 'credit', 0.75),
-        ]
-        
-        # Check expense patterns first (more specific)
-        for patterns, cat, conf in expense_patterns:
+        # Check INCOME patterns FIRST - critical for "Bill Payment FROM", "Transfer FROM", etc.
+        for patterns, cat, conf in income_patterns:
             if any(pattern in desc_lower for pattern in patterns):
-                # Special case: "Direct Debit" is always expense, "Credit" without "direct" is income
-                if 'direct debit' in desc_lower or 'dd' in desc_lower:
-                    is_income = False
-                    category = cat
-                    confidence = conf
-                    break
-                elif 'credit' in desc_lower and 'direct' not in desc_lower:
-                    # "Credit" alone suggests income
-                    continue
-                else:
-                    is_income = False
-                    category = cat
-                    confidence = conf
-                    break
-        
-        # Check income patterns if not already classified as expense
-        if confidence < 0.8:
-            for patterns, cat, conf in income_patterns:
+                is_income = True
+                category = cat
+                confidence = conf
+                break
+
+        # Check expense patterns only if not already classified as income
+        if not is_income or confidence < 0.8:
+            for patterns, cat, conf in expense_patterns:
                 if any(pattern in desc_lower for pattern in patterns):
-                    is_income = True
-                    category = cat
-                    confidence = max(confidence, conf)
-                    break
+                    # Skip if already classified as income with high confidence
+                    if is_income and confidence >= 0.9:
+                        break
+                    # Special case: "Direct Debit" is always expense
+                    if 'direct debit' in desc_lower or 'dd' in desc_lower:
+                        is_income = False
+                        category = cat
+                        confidence = conf
+                        break
+                    elif 'credit' in desc_lower and 'direct' not in desc_lower:
+                        # "Credit" alone suggests income
+                        continue
+                    else:
+                        is_income = False
+                        category = cat
+                        confidence = conf
+                        break
         
         # If still unclear, default to expense (most transactions are expenses)
         if confidence < 0.7:

@@ -112,23 +112,36 @@ class BaseBankParser(ABC):
     def normalize_transaction(self, txn: Dict) -> Dict:
         """
         Normalize transaction format
-        
+
         Args:
             txn: Transaction dictionary
-            
+
         Returns:
             Normalized transaction with all required fields
         """
+        # Safely convert to float, handling None and NaN
+        def safe_float(val):
+            if val is None:
+                return 0.0
+            try:
+                f = float(val)
+                # Check for NaN
+                if f != f:  # NaN check
+                    return 0.0
+                return f
+            except (ValueError, TypeError):
+                return 0.0
+
         # Ensure all fields exist
         normalized = {
             'date': txn.get('date', ''),
             'description': str(txn.get('description', '')).strip(),
-            'debit': float(txn.get('debit', 0) or 0),
-            'credit': float(txn.get('credit', 0) or 0),
+            'debit': safe_float(txn.get('debit', 0)),
+            'credit': safe_float(txn.get('credit', 0)),
             'balance': txn.get('balance'),
             'type': txn.get('type', 'expense')
         }
-        
+
         # Calculate amount and type if not set
         if normalized['credit'] > 0:
             normalized['amount'] = normalized['credit']
@@ -138,10 +151,17 @@ class BaseBankParser(ABC):
             normalized['type'] = 'expense'
         else:
             normalized['amount'] = 0.0
-        
-        # Set balance if not provided
-        if normalized['balance'] is None:
-            normalized['balance'] = None
-        
+
+        # Handle balance - convert None to None (not NaN)
+        if normalized['balance'] is not None:
+            try:
+                bal = float(normalized['balance'])
+                if bal != bal:  # NaN check
+                    normalized['balance'] = None
+                else:
+                    normalized['balance'] = bal
+            except (ValueError, TypeError):
+                normalized['balance'] = None
+
         return normalized
 
