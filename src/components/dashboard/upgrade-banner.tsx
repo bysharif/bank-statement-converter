@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Zap, X, AlertTriangle } from 'lucide-react'
-import { useDashboardRefresh } from '@/context/DashboardRefreshContext'
 
 interface UsageData {
   subscription: {
@@ -19,7 +18,6 @@ interface UsageData {
 
 export function UpgradeBanner() {
   const router = useRouter()
-  const { refreshKey } = useDashboardRefresh()
   const [data, setData] = useState<UsageData | null>(null)
   const [isDismissed, setIsDismissed] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -41,7 +39,11 @@ export function UpgradeBanner() {
     }
 
     fetchUsage()
-  }, [refreshKey])
+    
+    // Refetch every 30 seconds to stay updated
+    const interval = setInterval(fetchUsage, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Don't show if loading, dismissed, or no data
   if (loading || isDismissed || !data) return null
