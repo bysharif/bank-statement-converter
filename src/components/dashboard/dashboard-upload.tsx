@@ -95,21 +95,27 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
       fileJobs.forEach(job => {
         updateFileStatus(job.id, {
           status: 'processing',
-          progress: 10,
+          progress: 5,
           startTime: Date.now()
         })
       })
 
-      // Simulate realistic progress updates during processing
-      let currentProgress = 10
+      // Smooth progress simulation that asymptotically approaches 98%
+      // Progress slows down as it gets higher, creating a natural feel
+      let currentProgress = 5
       const progressInterval = setInterval(() => {
-        currentProgress = Math.min(currentProgress + Math.random() * 12 + 3, 85)
+        // Calculate remaining distance to 98%
+        const remaining = 98 - currentProgress
+        // Move 5-15% of the remaining distance each tick
+        const increment = remaining * (0.05 + Math.random() * 0.10)
+        currentProgress = Math.min(currentProgress + increment, 98)
+        
         fileJobs.forEach(job => {
           updateFileStatus(job.id, {
             progress: Math.round(currentProgress)
           })
         })
-      }, 800)
+      }, 500) // Update every 500ms for smoother animation
 
       // Create FormData with ALL files
       const formData = new FormData()
@@ -143,6 +149,13 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
 
       clearTimeout(timeoutId)
       clearInterval(progressInterval)
+      
+      // Smooth transition to near-complete before processing response
+      fileJobs.forEach(job => {
+        updateFileStatus(job.id, {
+          progress: 99
+        })
+      })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
