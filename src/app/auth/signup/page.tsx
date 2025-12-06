@@ -59,6 +59,22 @@ export default function SignUpPage() {
       if (signUpError) throw signUpError
 
       if (data.user) {
+        // Send admin notification immediately on signup (fire and forget)
+        try {
+          await fetch('/api/email/auth/admin-notification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: email,
+              name: `${firstName} ${lastName}`,
+              userType: userType,
+            }),
+          })
+        } catch (notificationError) {
+          // Don't block signup if notification fails
+          console.error('Failed to send admin notification:', notificationError)
+        }
+
         setSuccess(true)
       }
     } catch (err: any) {

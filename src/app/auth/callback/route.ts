@@ -32,22 +32,8 @@ export async function GET(request: Request) {
         // Don't block redirect if email fails
       }
 
-      // Send admin notification about new signup (fire and forget)
-      try {
-        await fetch(`${origin}/api/email/auth/admin-notification`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: data.user.email,
-            name: userMetadata.full_name || userName,
-            userType: userMetadata.user_type,
-          }),
-        })
-        console.log(`📧 Admin notification sent for new signup: ${data.user.email}`)
-      } catch (adminEmailError) {
-        console.error('Failed to send admin notification:', adminEmailError)
-        // Don't block redirect if admin notification fails
-      }
+      // Note: Admin notification is now sent at signup time (before confirmation)
+      // This callback only handles the welcome email after user confirms
 
       // Note: Pending subscription linking is now handled on dashboard load
       // This ensures the user is fully authenticated before checking
