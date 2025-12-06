@@ -151,9 +151,12 @@ export async function POST(request: NextRequest) {
           // Python parser failed or unavailable - this is expected for unsupported banks
           if (pythonError.message === 'PYTHON_PARSER_UNAVAILABLE') {
             console.log(`ℹ️ [${file.name}] Python parser unavailable (unsupported bank), falling back to AI`)
+          } else if (pythonError.message === 'PYTHON_PARSER_TIMEOUT') {
+            console.log(`⏱️ [${file.name}] Python parser timeout (30s), falling back to AI`)
           } else {
             console.log(`⚠️ [${file.name}] Python parser error: ${pythonError.message}, falling back to AI`)
           }
+          // Always continue to AI fallback - don't let Python errors block the process
         }
 
         // ============================================

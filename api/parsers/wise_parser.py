@@ -10,6 +10,8 @@ import os
 # Handle imports
 try:
     from .base_parser import BaseBankParser
+    from .logger import get_parser_logger
+    from .config import get_config
     from ..utils import parse_uk_date, parse_uk_amount, clean_description
 except ImportError:
     # Fallback for direct execution
@@ -17,11 +19,18 @@ except ImportError:
     if api_dir not in sys.path:
         sys.path.insert(0, api_dir)
     from parsers.base_parser import BaseBankParser
+    from parsers.logger import get_parser_logger
+    from parsers.config import get_config
     from utils import parse_uk_date, parse_uk_amount, clean_description
 
 
 class WiseParser(BaseBankParser):
     """Parser for Wise (formerly TransferWise) statements"""
+    
+    def __init__(self):
+        super().__init__()
+        self.logger = get_parser_logger('wise')
+        self.config = get_config('wise')
     
     def extract_transactions(self, pdf_path: str) -> List[Dict]:
         """
@@ -32,17 +41,10 @@ class WiseParser(BaseBankParser):
         - Each transaction has:
           1. Description line: "Description text -amount balance" or "Description text amount balance"
           2. Date line: "DD MMMM YYYY Transaction: TYPE-ID [Additional info]"
-        
-        Challenges:
-        - Amount and balance are on the description line (not separate columns)
-        - Negative amounts indicate outgoing (debit), positive indicate incoming (credit)
-        - Date format is "DD MMMM YYYY" (full month name)
-        - Descriptions can be multi-line or include references
         """
         transactions = []
         
         try:
-            # Extract text from all pages
             all_text = ''
             with pdfplumber.open(pdf_path) as pdf:
                 for page in pdf.pages:
@@ -50,11 +52,10 @@ class WiseParser(BaseBankParser):
                     if page_text:
                         all_text += page_text + '\n'
             
-            # Parse transactions from text
             transactions = self._parse_wise_text(all_text)
             
         except Exception as e:
-            print(f"Error parsing Wise PDF: {str(e)}")
+            self.logger.error(f"Error parsing Wise PDF: {str(e)}")
             import traceback
             traceback.print_exc()
         
@@ -64,6 +65,8 @@ class WiseParser(BaseBankParser):
         """Parse transactions from Wise statement text"""
         transactions = []
         lines = [line.strip() for line in text.split('\n') if line.strip()]
+        
+        self.logger.info(f"Processing {len(lines)} lines")
         
         # Find the header row
         header_found = False
@@ -78,6 +81,7 @@ class WiseParser(BaseBankParser):
             i += 1
         
         if not header_found:
+            self.logger.warning("No header found")
             return transactions
         
         # Parse transactions
@@ -176,15 +180,17 @@ class WiseParser(BaseBankParser):
                         'type': 'income' if credit > 0 else 'expense'
                     })
                     
+                    self.logger.debug(f"Transaction: {date_str} | {cleaned_description[:40]} | {amount}")
+                    
                     i = j
                 except ValueError:
                     i += 1
             else:
                 i += 1
         
-        # Reverse transactions to chronological order (oldest first)
-        # Wise statements show newest transactions first
+        # Reverse to chronological order (Wise shows newest first)
         transactions.reverse()
         
+        self.logger.info(f"Extracted {len(transactions)} transactions")
+        
         return transactions
-

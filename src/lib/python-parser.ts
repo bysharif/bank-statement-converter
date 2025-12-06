@@ -80,10 +80,25 @@ export async function parsePDFWithPython(
       ? '' // Client-side: use relative URL
       : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'; // Server-side: use full URL
 
-    const response = await fetch(`${baseUrl}/api/parse-python`, {
-      method: 'POST',
-      body: formData,
-    });
+    // Add timeout handling (30 seconds for Python parser)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}/api/parse-python`, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      });
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        throw new Error('PYTHON_PARSER_TIMEOUT');
+      }
+      throw fetchError;
+    }
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));

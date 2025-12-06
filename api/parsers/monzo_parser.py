@@ -12,17 +12,26 @@ import os
 # Handle imports
 try:
     from .base_parser import BaseBankParser
+    from .logger import get_parser_logger
+    from .config import get_config
     from ..utils import clean_description
 except ImportError:
     api_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if api_dir not in sys.path:
         sys.path.insert(0, api_dir)
     from parsers.base_parser import BaseBankParser
+    from parsers.logger import get_parser_logger
+    from parsers.config import get_config
     from utils import clean_description
 
 
 class MonzoParser(BaseBankParser):
     """Improved parser for Monzo Bank UK statements"""
+
+    def __init__(self):
+        super().__init__()
+        self.logger = get_parser_logger('monzo')
+        self.config = get_config('monzo')
 
     def extract_transactions(self, pdf_path: str) -> List[Dict]:
         """Extract transactions from Monzo statement"""
@@ -41,7 +50,7 @@ class MonzoParser(BaseBankParser):
             transactions = self._parse_monzo_text(all_text)
 
         except Exception as e:
-            print(f"Error parsing Monzo PDF: {str(e)}")
+            self.logger.error(f"Error parsing Monzo PDF: {str(e)}")
             import traceback
             traceback.print_exc()
 
@@ -52,20 +61,18 @@ class MonzoParser(BaseBankParser):
         transactions = []
         lines = [line.strip() for line in text.split('\n') if line.strip()]
 
-        print(f"\n{'='*80}")
-        print(f"MONZO PARSER V2 - Processing {len(lines)} lines")
-        print(f"{'='*80}\n")
+        self.logger.info(f"Processing {len(lines)} lines")
 
         # Find header row
         header_idx = -1
         for i, line in enumerate(lines):
             if 'Date' in line and 'Description' in line and ('Amount' in line or 'Balance' in line):
                 header_idx = i
-                print(f"✅ Found header at line {i}: {line}")
+                self.logger.debug(f"Found header at line {i}: {line}")
                 break
 
         if header_idx == -1:
-            print("❌ No header found")
+            self.logger.warning("No header found")
             return transactions
 
         # Start parsing from line after header
@@ -74,7 +81,7 @@ class MonzoParser(BaseBankParser):
         while i < len(lines):
             line = lines[i]
 
-            # Pattern 1: Check if line starts with a date (DD/MM/YYYY)
+            # Check if line starts with a date (DD/MM/YYYY)
             date_pattern = r'^(\d{1,2}/\d{1,2}/\d{4})\s+'
             date_match = re.match(date_pattern, line)
 
@@ -87,13 +94,11 @@ class MonzoParser(BaseBankParser):
             # Extract everything after the date
             after_date = line[len(date_str):].strip()
 
-            # Pattern 2: Find amount and balance at the end of line
-            # Format: ... -12.00 -996.85 or ... 10.00 573.30
+            # Find amount and balance at the end of line
             amount_balance_pattern = r'(-?[\d,]+\.?\d{2})\s+(-?[\d,]+\.?\d{2})\s*$'
             amount_balance_match = re.search(amount_balance_pattern, after_date)
 
             if not amount_balance_match:
-                # No amount/balance found, skip this line
                 i += 1
                 continue
 
@@ -103,11 +108,11 @@ class MonzoParser(BaseBankParser):
             # Extract description (between date and amount/balance)
             desc_on_date_line = after_date[:amount_balance_match.start()].strip()
 
-            # Pattern 3: Look for merchant name on previous line(s)
+            # Look for merchant name on previous line(s)
             merchant_lines = []
+            max_lookback = self.config.max_lookback_lines if self.config else 4
 
-            # Check up to 3 lines back
-            for j in range(1, min(4, i - header_idx)):
+            for j in range(1, min(max_lookback, i - header_idx)):
                 prev_line = lines[i - j].strip()
 
                 # Stop if we hit another date line
@@ -118,11 +123,11 @@ class MonzoParser(BaseBankParser):
                 if 'Date' in prev_line and 'Description' in prev_line:
                     break
 
-                # Skip if line is just numbers (amount/balance from previous transaction)
+                # Skip amount/balance lines
                 if re.match(r'^-?[\d,]+\.?\d{2}\s+-?[\d,]+\.?\d{2}\s*$', prev_line):
                     continue
 
-                # Skip reference lines (we'll capture them separately)
+                # Skip reference lines
                 if prev_line.lower().startswith('reference:'):
                     continue
 
@@ -130,52 +135,43 @@ class MonzoParser(BaseBankParser):
                 if 'this relates to' in prev_line.lower():
                     continue
 
-                # Skip very short lines (likely not merchant names)
+                # Skip very short lines
                 if len(prev_line) < 3:
                     continue
 
-                # This looks like a merchant name
                 merchant_lines.insert(0, prev_line)
 
             # Build description
             description_parts = []
 
-            # Add merchant name from previous lines if found
             if merchant_lines:
                 merchant_name = ' '.join(merchant_lines)
-                # Clean up common patterns
-                merchant_name = re.sub(r'\s+', ' ', merchant_name)  # Remove extra spaces
+                merchant_name = re.sub(r'\s+', ' ', merchant_name)
                 description_parts.append(merchant_name)
-                print(f"  📝 Merchant from previous line(s): {merchant_name}")
+                self.logger.debug(f"Merchant from previous line(s): {merchant_name}")
 
-            # Add description from date line
             if desc_on_date_line:
-                # Only add if it's not redundant and adds value
                 if not merchant_lines or len(desc_on_date_line) > 5:
                     description_parts.append(desc_on_date_line)
-                    print(f"  📝 Description from date line: {desc_on_date_line}")
+                    self.logger.debug(f"Description from date line: {desc_on_date_line}")
 
-            # Combine parts and clean
             description = ' '.join(description_parts).strip()
-
-            # Clean up split payment type indicators
-            # e.g., "SHOPIFY (Faster Payments) Reference:" -> "SHOPIFY"
             description = self._clean_monzo_description(description)
 
-            # Fallback: if still no description, use a generic term
+            # Fallback description
             if not description:
                 if float(amount_str) < 0:
                     description = "Withdrawal"
                 else:
                     description = "Deposit"
-                print(f"  ⚠️  No description found, using generic term")
+                self.logger.debug("No description found, using generic term")
 
-            # Parse date (DD/MM/YYYY -> YYYY-MM-DD)
+            # Parse date
             try:
                 day, month, year = date_str.split('/')
                 parsed_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
             except:
-                print(f"  ❌ Invalid date: {date_str}")
+                self.logger.debug(f"Invalid date: {date_str}")
                 i += 1
                 continue
 
@@ -185,7 +181,7 @@ class MonzoParser(BaseBankParser):
                 debit = abs(amount) if amount < 0 else 0.0
                 credit = amount if amount > 0 else 0.0
             except ValueError:
-                print(f"  ❌ Invalid amount: {amount_str}")
+                self.logger.debug(f"Invalid amount: {amount_str}")
                 i += 1
                 continue
 
@@ -195,7 +191,6 @@ class MonzoParser(BaseBankParser):
             except ValueError:
                 balance = None
 
-            # Clean description
             cleaned_description = clean_description(description, max_length=100)
 
             transaction = {
@@ -208,16 +203,14 @@ class MonzoParser(BaseBankParser):
             }
 
             transactions.append(transaction)
-            print(f"  ✅ Transaction: {parsed_date} | {cleaned_description} | {amount} | {balance}")
+            self.logger.debug(f"Transaction: {parsed_date} | {cleaned_description} | {amount} | {balance}")
 
             i += 1
 
         # Reverse to chronological order (Monzo shows newest first)
         transactions.reverse()
 
-        print(f"\n{'='*80}")
-        print(f"✅ MONZO PARSER V2 - Extracted {len(transactions)} transactions")
-        print(f"{'='*80}\n")
+        self.logger.info(f"Extracted {len(transactions)} transactions")
 
         return transactions
 
@@ -231,13 +224,12 @@ class MonzoParser(BaseBankParser):
         # Remove "Reference:" and everything after it
         cleaned = re.sub(r'\s*Reference:.*$', '', cleaned, flags=re.IGNORECASE)
 
-        # Remove payment type indicators (these are split across lines)
-        # Match: (Faster Payments), (Faster, Payments), etc.
+        # Remove payment type indicators
         cleaned = re.sub(r'\(\s*Faster\s*\)?', '', cleaned)
         cleaned = re.sub(r'\bPayments?\)\s*', '', cleaned)
         cleaned = re.sub(r'\(\s*Faster\s+Payments?\s*\)', '', cleaned)
 
-        # Remove standalone "Payments)" at the start (from split lines)
+        # Remove standalone "Payments)" at the start
         cleaned = re.sub(r'^\s*Payments?\)\s*', '', cleaned)
 
         # Remove payment method indicators
@@ -246,12 +238,12 @@ class MonzoParser(BaseBankParser):
         # Remove "This relates to" text
         cleaned = re.sub(r'\s*This relates to.*$', '', cleaned, flags=re.IGNORECASE)
 
-        # Clean up extra spaces and punctuation
-        cleaned = re.sub(r'\s+', ' ', cleaned)  # Normalize spaces
-        cleaned = re.sub(r'\s*\(\s*\)\s*', '', cleaned)  # Remove empty brackets
+        # Clean up spaces and punctuation
+        cleaned = re.sub(r'\s+', ' ', cleaned)
+        cleaned = re.sub(r'\s*\(\s*\)\s*', '', cleaned)
         cleaned = cleaned.strip()
 
-        # Remove standalone abbreviations at the start (ACC, GBR, IRL, etc.)
+        # Remove standalone abbreviations
         cleaned = re.sub(r'^(ACC|GBR|IRL|USA|EUR|USD)\s+', '', cleaned)
 
         # Remove trailing/leading punctuation

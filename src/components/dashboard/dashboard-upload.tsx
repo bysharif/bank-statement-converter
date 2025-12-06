@@ -145,7 +145,24 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
       clearInterval(progressInterval)
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({}))
+        
+        // Handle specific error codes
+        if (response.status === 401) {
+          // Auth error - session expired or invalid
+          throw new Error('Your session has expired. Please sign in again to continue.')
+        }
+        
+        if (response.status === 403) {
+          // Subscription limit reached
+          throw new Error(errorData.message || 'Monthly conversion limit reached. Please upgrade your plan.')
+        }
+        
+        if (response.status === 503) {
+          // Service unavailable - parser not ready
+          throw new Error('The conversion service is temporarily unavailable. Please try again in a few moments.')
+        }
+        
         throw new Error(errorData.error || errorData.message || 'Failed to process files')
       }
 
