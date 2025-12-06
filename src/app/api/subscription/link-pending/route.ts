@@ -16,14 +16,20 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
 
     // Get current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
+    let user;
+    try {
+      const { data, error: authError } = await supabase.auth.getUser()
+      if (authError || !data?.user) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        )
+      }
+      user = data.user
+    } catch (authErr) {
+      console.error('Auth error in link-pending:', authErr)
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Authentication failed' },
         { status: 401 }
       )
     }
@@ -44,10 +50,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Search for Stripe customers with this email that need linking
-    const customers = await stripe.customers.list({
-      email: user.email,
-      limit: 10,
-    })
+    let customers;
+    try {
+      customers = await stripe.customers.list({
+        email: user.email,
+        limit: 10,
+      })
+    } catch (stripeErr) {
+      console.error('Stripe customers.list error:', stripeErr)
+      // Return success with no linking - don't block the user
+      return NextResponse.json({
+        success: true,
+        message: 'Could not check for pending subscriptions',
+        linked: false,
+      })
+    }
 
     let linkedSubscription = null
 
