@@ -60,20 +60,31 @@ export async function POST(request: NextRequest) {
     )
 
     // Send the notification to admin
-    await resend.emails.send({
+    console.log(`📧 Attempting to send admin notification to ${ADMIN_EMAIL} for new signup: ${email}`)
+    
+    const { data, error: sendError } = await resend.emails.send({
       from: 'Bank Statement Converter <notifications@convertbank-statement.com>',
       to: ADMIN_EMAIL,
       subject: `🎉 New Signup: ${email}`,
       html: emailHtml,
     })
 
-    console.log(`✅ Admin notification sent for new signup: ${email}`)
+    if (sendError) {
+      console.error('❌ Resend API error:', JSON.stringify(sendError, null, 2))
+      return NextResponse.json(
+        { success: false, error: sendError.message || 'Resend API error' },
+        { status: 500 }
+      )
+    }
 
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Error sending admin notification email:', error)
+    console.log(`✅ Admin notification sent successfully! ID: ${data?.id}, Email: ${email}`)
+
+    return NextResponse.json({ success: true, emailId: data?.id })
+  } catch (error: any) {
+    console.error('❌ Error sending admin notification email:', error?.message || error)
+    console.error('Full error:', JSON.stringify(error, null, 2))
     return NextResponse.json(
-      { success: false, error: 'Failed to send notification' },
+      { success: false, error: error?.message || 'Failed to send notification' },
       { status: 500 }
     )
   }

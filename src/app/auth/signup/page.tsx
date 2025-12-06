@@ -61,7 +61,8 @@ export default function SignUpPage() {
       if (data.user) {
         // Send admin notification immediately on signup (fire and forget)
         try {
-          await fetch('/api/email/auth/admin-notification', {
+          console.log('📧 Sending admin notification for signup:', email)
+          const notificationResponse = await fetch('/api/email/auth/admin-notification', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -70,9 +71,15 @@ export default function SignUpPage() {
               userType: userType,
             }),
           })
+          const notificationResult = await notificationResponse.json()
+          if (notificationResult.success) {
+            console.log('✅ Admin notification sent successfully:', notificationResult)
+          } else {
+            console.error('❌ Admin notification failed:', notificationResult)
+          }
         } catch (notificationError) {
           // Don't block signup if notification fails
-          console.error('Failed to send admin notification:', notificationError)
+          console.error('❌ Failed to send admin notification:', notificationError)
         }
 
         setSuccess(true)
