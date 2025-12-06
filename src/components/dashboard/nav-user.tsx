@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import {
   BadgeCheck,
   Bell,
@@ -42,6 +43,7 @@ interface NavUserProps {
 }
 
 export function NavUser({ user: propUser }: NavUserProps) {
+  const router = useRouter()
   const { isMobile } = useSidebar()
   const { user: authUser, signOut } = useAuth()
 
@@ -129,22 +131,22 @@ export function NavUser({ user: propUser }: NavUserProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/pricing')}>
                 <Sparkles />
                 Upgrade to Pro
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/dashboard/account')}>
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/dashboard/billing')}>
                 <CreditCard />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/dashboard/notifications')}>
                 <Bell />
                 Notifications
               </DropdownMenuItem>
