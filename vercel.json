@@ -9,7 +9,7 @@
   },
   "functions": {
     "api/convert.py": {
-      "runtime": "python3.9",
+      "runtime": "@vercel/python@4.3.1",
       "maxDuration": 60
     }
   }
