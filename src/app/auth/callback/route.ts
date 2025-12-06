@@ -12,13 +12,13 @@ export async function GET(request: Request) {
 
     if (!error && data.user) {
       // Successfully confirmed email and logged in
+      const userMetadata = data.user.user_metadata || {}
+      const userName = userMetadata.first_name ||
+                      userMetadata.full_name ||
+                      data.user.email?.split('@')[0]
 
-      // Send welcome email (fire and forget)
+      // Send welcome email to user (fire and forget)
       try {
-        const userName = data.user.user_metadata?.first_name ||
-                        data.user.user_metadata?.full_name ||
-                        data.user.email?.split('@')[0]
-
         await fetch(`${origin}/api/email/auth/welcome`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -30,6 +30,23 @@ export async function GET(request: Request) {
       } catch (emailError) {
         console.error('Failed to send welcome email:', emailError)
         // Don't block redirect if email fails
+      }
+
+      // Send admin notification about new signup (fire and forget)
+      try {
+        await fetch(`${origin}/api/email/auth/admin-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: data.user.email,
+            name: userMetadata.full_name || userName,
+            userType: userMetadata.user_type,
+          }),
+        })
+        console.log(`📧 Admin notification sent for new signup: ${data.user.email}`)
+      } catch (adminEmailError) {
+        console.error('Failed to send admin notification:', adminEmailError)
+        // Don't block redirect if admin notification fails
       }
 
       // Note: Pending subscription linking is now handled on dashboard load
