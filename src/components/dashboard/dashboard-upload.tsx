@@ -91,31 +91,26 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
     })
 
     try {
-      // Mark all files as processing
+      // Mark all files as processing with initial progress
+      // The CSS will animate smoothly from 0 to the target
       fileJobs.forEach(job => {
         updateFileStatus(job.id, {
           status: 'processing',
-          progress: 5,
+          progress: 0,
           startTime: Date.now()
         })
       })
 
-      // Smooth progress simulation that asymptotically approaches 98%
-      // Progress slows down as it gets higher, creating a natural feel
-      let currentProgress = 5
-      const progressInterval = setInterval(() => {
-        // Calculate remaining distance to 98%
-        const remaining = 98 - currentProgress
-        // Move 5-15% of the remaining distance each tick
-        const increment = remaining * (0.05 + Math.random() * 0.10)
-        currentProgress = Math.min(currentProgress + increment, 98)
-        
-        fileJobs.forEach(job => {
-          updateFileStatus(job.id, {
-            progress: Math.round(currentProgress)
-          })
+      // Small delay to ensure the 0% state renders before animating
+      await new Promise(resolve => setTimeout(resolve, 50))
+
+      // Set progress to 95% - CSS will animate smoothly over ~90 seconds
+      // This creates one continuous smooth motion instead of skippy updates
+      fileJobs.forEach(job => {
+        updateFileStatus(job.id, {
+          progress: 95
         })
-      }, 500) // Update every 500ms for smoother animation
+      })
 
       // Create FormData with ALL files
       const formData = new FormData()
@@ -139,7 +134,6 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
         })
       } catch (fetchError: any) {
         clearTimeout(timeoutId)
-        clearInterval(progressInterval)
 
         if (fetchError.name === 'AbortError') {
           throw new Error('Processing timeout. Large PDFs may take longer than expected. Please try again or contact support if the issue persists.')
@@ -148,14 +142,6 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
       }
 
       clearTimeout(timeoutId)
-      clearInterval(progressInterval)
-      
-      // Smooth transition to near-complete before processing response
-      fileJobs.forEach(job => {
-        updateFileStatus(job.id, {
-          progress: 99
-        })
-      })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -358,9 +344,13 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{file.status === 'completed' ? 'Completed' : file.status === 'processing' ? 'Processing...' : 'Waiting'}</span>
-              <span>{file.progress}%</span>
+              <span>{file.status === 'completed' ? '100%' : file.status === 'processing' ? '' : `${file.progress}%`}</span>
             </div>
-            <Progress value={file.progress} className="h-2" />
+            <Progress 
+              value={file.progress} 
+              className="h-2" 
+              smooth={file.status === 'processing'}
+            />
           </div>
         </TableCell>
         <TableCell className="text-center w-[100px]">

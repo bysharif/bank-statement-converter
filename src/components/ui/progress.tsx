@@ -3,10 +3,15 @@ import * as ProgressPrimitive from "@radix-ui/react-progress"
 
 import { cn } from "@/lib/utils"
 
+interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
+  // When true, uses a slow continuous animation (for processing states)
+  smooth?: boolean
+}
+
 const Progress = React.forwardRef<
   React.ElementRef<typeof ProgressPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root>
->(({ className, value, ...props }, ref) => (
+  ProgressProps
+>(({ className, value, smooth, ...props }, ref) => (
   <ProgressPrimitive.Root
     ref={ref}
     className={cn(
@@ -16,7 +21,14 @@ const Progress = React.forwardRef<
     {...props}
   >
     <ProgressPrimitive.Indicator
-      className="h-full w-full flex-1 bg-uk-blue-600 transition-all duration-500 ease-out"
+      className={cn(
+        "h-full w-full flex-1 bg-uk-blue-600",
+        // Use long transition for smooth continuous animation during processing
+        // Short transition for quick updates (completion, errors)
+        smooth 
+          ? "transition-transform duration-[90000ms] ease-linear" 
+          : "transition-transform duration-300 ease-out"
+      )}
       style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
     />
   </ProgressPrimitive.Root>
