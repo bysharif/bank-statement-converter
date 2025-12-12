@@ -132,15 +132,23 @@ export async function POST(request: NextRequest) {
           if (pythonResult.success && pythonResult.transactions.length > 0) {
             console.log(`✅ [${file.name}] Python parser succeeded: ${pythonResult.transactionCount} transactions from ${pythonResult.bankName}`)
 
-            // Convert Python transactions to our format
-            transactions = pythonResult.transactions.map((tx: ParsedTransaction, index: number) => ({
-              id: `txn_${index + 1}`,
-              date: tx.date,
-              description: tx.description,
-              amount: tx.amount,
-              type: tx.type === 'credit' || tx.type === 'income' ? 'credit' : 'debit',
-              balance: tx.balance,
-            }))
+            // Convert Python transactions to our format - preserve debit/credit fields
+            transactions = pythonResult.transactions.map((tx: ParsedTransaction, index: number) => {
+              // Determine type from the transaction data
+              const isCredit = tx.type === 'credit' || tx.type === 'income' || (tx.credit && tx.credit > 0)
+              
+              return {
+                id: `txn_${index + 1}`,
+                date: tx.date,
+                description: tx.description,
+                amount: tx.amount || (isCredit ? tx.credit : tx.debit) || 0,
+                type: isCredit ? 'credit' : 'debit',
+                balance: tx.balance,
+                // Preserve original debit/credit values for accurate CSV generation
+                debit: tx.debit || 0,
+                credit: tx.credit || 0,
+              }
+            })
 
             parseSuccess = true
             parsingMethod = 'python'
@@ -297,9 +305,24 @@ function generateBatchCSV(transactions: any[]): string {
   const csvLines = [headerLine]
 
   transactions.forEach(txn => {
-    const debit = txn.type === 'debit' ? txn.amount.toFixed(2) : ''
-    const credit = txn.type === 'credit' ? txn.amount.toFixed(2) : ''
-    const description = txn.description.includes(',') ? `"${txn.description}"` : txn.description
+    // Use explicit debit/credit fields if available, otherwise derive from type + amount
+    let debit = ''
+    let credit = ''
+    
+    if (txn.debit !== undefined && txn.debit > 0) {
+      debit = txn.debit.toFixed(2)
+    } else if (txn.credit !== undefined && txn.credit > 0) {
+      credit = txn.credit.toFixed(2)
+    } else if (txn.amount !== undefined && !isNaN(txn.amount)) {
+      // Fallback to type + amount
+      if (txn.type === 'debit') {
+        debit = txn.amount.toFixed(2)
+      } else {
+        credit = txn.amount.toFixed(2)
+      }
+    }
+    
+    const description = (txn.description || '').includes(',') ? `"${txn.description}"` : (txn.description || '')
 
     csvLines.push(`${txn.date},${description},${debit},${credit}`)
   })

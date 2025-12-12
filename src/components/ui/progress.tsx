@@ -4,7 +4,7 @@ import * as ProgressPrimitive from "@radix-ui/react-progress"
 import { cn } from "@/lib/utils"
 
 interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
-  // When true, uses a slow continuous animation (for processing states)
+  // When true, uses a smooth animation that decelerates as it approaches target
   smooth?: boolean
 }
 
@@ -23,11 +23,11 @@ const Progress = React.forwardRef<
     <ProgressPrimitive.Indicator
       className={cn(
         "h-full w-full flex-1 bg-uk-blue-600",
-        // Use long transition for smooth continuous animation during processing
-        // Short transition for quick updates (completion, errors)
+        // Use smooth ease-out for natural deceleration during processing
+        // Quick ease-out for completion (snaps to 100% nicely)
         smooth 
-          ? "transition-transform duration-[90000ms] ease-linear" 
-          : "transition-transform duration-300 ease-out"
+          ? "transition-transform duration-[30000ms] ease-out" 
+          : "transition-transform duration-500 ease-out"
       )}
       style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
     />

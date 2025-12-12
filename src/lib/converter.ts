@@ -297,16 +297,21 @@ export class BankStatementConverter {
   }
 
   public static exportToCSV(result: ConversionResult): string {
-    const headers = ['Date', 'Description', 'Amount', 'Type', 'Balance']
+    const headers = ['Date', 'Description', 'Debit', 'Credit']
     const rows = [headers.join(',')]
 
     result.transactions.forEach(transaction => {
+      const debit = transaction.type === 'debit' ? transaction.amount.toFixed(2) : ''
+      const credit = transaction.type === 'credit' ? transaction.amount.toFixed(2) : ''
+      const description = transaction.description.includes(',') 
+        ? `"${transaction.description}"` 
+        : transaction.description
+      
       const row = [
         transaction.date,
-        `"${transaction.description}"`,
-        transaction.amount.toFixed(2),
-        transaction.type,
-        transaction.balance?.toFixed(2) || ''
+        description,
+        debit,
+        credit
       ]
       rows.push(row.join(','))
     })

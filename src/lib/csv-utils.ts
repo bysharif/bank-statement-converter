@@ -17,21 +17,23 @@ export interface ParsedBankStatement {
 
 /**
  * Generate CSV content with separate Debit and Credit columns
- * Format: Date, Description, Debit, Credit, Balance
+ * Format: Date, Description, Debit, Credit
  */
 export function generateCSVContent(transactions: Transaction[]): string {
-  const headers = ['Date', 'Description', 'Debit', 'Credit', 'Balance']
+  const headers = ['Date', 'Description', 'Debit', 'Credit']
 
   const rows = transactions.map(transaction => {
-    const debit = transaction.type === 'debit' ? transaction.amount.toFixed(2) : '0.00'
-    const credit = transaction.type === 'credit' ? transaction.amount.toFixed(2) : '0.00'
+    const debit = transaction.type === 'debit' ? transaction.amount.toFixed(2) : ''
+    const credit = transaction.type === 'credit' ? transaction.amount.toFixed(2) : ''
+    const description = transaction.description.includes(',')
+      ? `"${transaction.description.replace(/"/g, '""')}"` 
+      : transaction.description.replace(/"/g, '""')
     
     return [
       transaction.date,
-      `"${transaction.description.replace(/"/g, '""')}"`, // Escape quotes in description
+      description,
       debit,
-      credit,
-      transaction.balance?.toFixed(2) || ''
+      credit
     ]
   })
 

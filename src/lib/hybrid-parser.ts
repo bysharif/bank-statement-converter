@@ -401,17 +401,17 @@ export class HybridBankParser {
 
   /**
    * Generate CSV from transactions
+   * Format: Date, Description, Debit, Credit
    */
   private generateCSV(transactions: Transaction[]): string {
-    const lines = ['Date,Description,Debit,Credit,Balance'];
+    const lines = ['Date,Description,Debit,Credit'];
 
     for (const txn of transactions) {
       const debit = txn.type === 'debit' ? txn.amount.toFixed(2) : '';
       const credit = txn.type === 'credit' ? txn.amount.toFixed(2) : '';
-      const balance = txn.balance ? txn.balance.toFixed(2) : '';
       const description = txn.description.includes(',') ? `"${txn.description}"` : txn.description;
 
-      lines.push(`${txn.date},${description},${debit},${credit},${balance}`);
+      lines.push(`${txn.date},${description},${debit},${credit}`);
     }
 
     return lines.join('\n');

@@ -95,14 +95,13 @@ export class AIBankStatementParser {
 2. **CSV Format** - Return ONLY the CSV data, no explanations or additional text
 
 3. **Column Headers** (first row):
-   Date,Description,Debit,Credit,Balance
+   Date,Description,Debit,Credit
 
 4. **Column Rules:**
    - Date: Use DD/MM/YYYY format (e.g., 15/03/2024). If the statement only shows "DD MMM" (e.g., "03 Apr"), use the year from the statement header.
    - Description: Keep the transaction description concise but complete. For long descriptions (e.g., foreign currency transactions with exchange rate details), keep the main merchant/payee name and transaction type.
    - Debit: Money OUT of the account (payments, withdrawals, transfers out) - number only, no currency symbol
    - Credit: Money INTO the account (deposits, salary, refunds, transfers in) - number only, no currency symbol
-   - Balance: Running balance after transaction (if available, otherwise leave empty). Note: Barclays and some banks only show balance periodically, not for every transaction.
 
 5. **IMPORTANT - Debit vs Credit Classification:**
    **DEBIT (Money Out):**
@@ -148,19 +147,17 @@ export class AIBankStatementParser {
 8. **Handling Edge Cases:**
    - Skip header rows, footer information, account summaries ("At a glance", "Your balances")
    - Skip opening/closing balance rows unless they're actual transactions
-   - "Start balance" or "End balance" rows should be included as information
-   - If balance is not shown for a transaction, leave the Balance column empty
    - Clean up descriptions: remove extra whitespace, but keep them readable
    - Foreign currency transactions: Extract the GBP amount, not the original currency
 
 **Example Output:**
-Date,Description,Debit,Credit,Balance
-01/04/2024,Start balance,,,123.92
-03/04/2024,Direct Debit to V12 Finance,38.70,,
-03/04/2024,Direct Debit to David Lloyd,189.00,,
-03/04/2024,Card Payment to Amazon Prime,8.99,,
-03/04/2024,Received from Maintenance Proper,,641.19,
-03/04/2024,"Transfer From Sort Code 20-45-41",,10.00,1583.99
+Date,Description,Debit,Credit
+01/04/2024,Opening Balance,,0.00
+03/04/2024,Direct Debit to V12 Finance,38.70,
+03/04/2024,Direct Debit to David Lloyd,189.00,
+03/04/2024,Card Payment to Amazon Prime,8.99,
+03/04/2024,Received from Maintenance Proper,,641.19
+03/04/2024,"Transfer From Sort Code 20-45-41",,10.00
 
 **Remember:**
 - Return ONLY the CSV data
@@ -313,9 +310,9 @@ Date,Description,Debit,Credit,Balance
       if (!line) continue;
 
       const parts = this.parseCSVLine(line);
-      if (parts.length < 5) continue;
+      if (parts.length < 4) continue;
 
-      const [date, description, debit, credit, balance] = parts;
+      const [date, description, debit, credit] = parts;
 
       const isDebit = debit && debit.trim() !== '';
       const amount = isDebit ? parseFloat(debit) : parseFloat(credit);
@@ -326,7 +323,6 @@ Date,Description,Debit,Credit,Balance
         description: description.replace(/^"|"$/g, ''),
         amount,
         type: isDebit ? 'debit' : 'credit',
-        balance: balance ? parseFloat(balance) : undefined,
       });
     }
 

@@ -119,9 +119,37 @@ class RevolutParser(BaseBankParser):
                     continue
 
             elif len(amounts) == 1:
-                # Single amount - need more context, skip for now
-                i += 1
-                continue
+                # Single amount - check next line for balance (e.g., "Fee: £0.12 £257.07")
+                amount_str = amounts[0].replace('£', '').replace(',', '')
+                balance = None
+
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1]
+                    next_amounts = re.findall(amount_pattern, next_line)
+                    if next_amounts and len(next_amounts) >= 1:
+                        # Last amount on next line is likely the balance
+                        balance_str = next_amounts[-1].replace('£', '').replace(',', '')
+                        try:
+                            balance = float(balance_str)
+                        except ValueError:
+                            balance = None
+
+                try:
+                    amount = float(amount_str)
+
+                    if is_credit or 'Transfer from' in description or 'From:' in line:
+                        debit = 0.0
+                        credit = amount
+                        tx_type = 'income'
+                    else:
+                        debit = amount
+                        credit = 0.0
+                        tx_type = 'expense'
+
+                except ValueError:
+                    self.logger.debug(f"Invalid single amount: {amounts}")
+                    i += 1
+                    continue
             else:
                 i += 1
                 continue

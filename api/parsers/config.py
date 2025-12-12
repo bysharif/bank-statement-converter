@@ -266,3 +266,4 @@ def get_type_name(type_code: str) -> str:
     """Get human-readable name for a transaction type code"""
     return TYPE_CODE_NAMES.get(type_code.upper(), type_code)
 
+

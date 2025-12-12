@@ -94,7 +94,6 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
 
     try {
       // Mark all files as processing with initial progress
-      // The CSS will animate smoothly from 0 to the target
       fileJobs.forEach(job => {
         updateFileStatus(job.id, {
           status: 'processing',
@@ -104,13 +103,13 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
       })
 
       // Small delay to ensure the 0% state renders before animating
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise(resolve => setTimeout(resolve, 100))
 
-      // Set progress to 95% - CSS will animate smoothly over ~90 seconds
-      // This creates one continuous smooth motion instead of skippy updates
+      // Animate progress smoothly to 85% - CSS will ease-out over 30 seconds
+      // The ease-out creates a natural deceleration effect
       fileJobs.forEach(job => {
         updateFileStatus(job.id, {
-          progress: 95
+          progress: 85
         })
       })
 
@@ -177,13 +176,20 @@ export function DashboardUpload({ onUploadComplete }: DashboardUploadProps) {
       const transactionsPerFile = Math.floor(result.totalTransactions / fileJobs.length)
       const remainingTransactions = result.totalTransactions % fileJobs.length
 
-      // Mark all files as completed with their share of transactions
+      // Smoothly animate to 100% before marking complete
+      fileJobs.forEach(job => {
+        updateFileStatus(job.id, { progress: 100 })
+      })
+
+      // Wait for the progress animation to complete (500ms ease-out)
+      await new Promise(resolve => setTimeout(resolve, 600))
+
+      // Now mark all files as completed with their share of transactions
       fileJobs.forEach((job, index) => {
         const fileTransactionCount = transactionsPerFile + (index < remainingTransactions ? 1 : 0)
 
         updateFileStatus(job.id, {
           status: 'completed',
-          progress: 100,
           endTime: Date.now(),
           result: {
             bankName: 'AI-Detected',

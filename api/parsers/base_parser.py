@@ -453,3 +453,364 @@ class BaseBankParser(ABC):
             ParsingContext instance
         """
         return ParsingContext(self.logger, self.parser_name, total_lines)
+    
+    # =========================================================================
+    # UNIVERSAL UTILITIES (Added for parser optimization)
+    # =========================================================================
+    
+    # Constants for validation
+    MIN_AMOUNT = 0.01
+    MAX_AMOUNT = 99999.99
+    
+    # Month mappings for manual parsing
+    MONTH_MAP = {
+        'jan': 1, 'january': 1,
+        'feb': 2, 'february': 2,
+        'mar': 3, 'march': 3,
+        'apr': 4, 'april': 4,
+        'may': 5,
+        'jun': 6, 'june': 6,
+        'jul': 7, 'july': 7,
+        'aug': 8, 'august': 8,
+        'sep': 9, 'sept': 9, 'september': 9,
+        'oct': 10, 'october': 10,
+        'nov': 11, 'november': 11,
+        'dec': 12, 'december': 12,
+    }
+    
+    def extract_amounts_safely(self, text: str, max_amount: float = None) -> List[float]:
+        """
+        Extract amounts from text with noise removal.
+        
+        CRITICAL: This removes account numbers and card references BEFORE
+        extracting amounts to avoid false positives.
+        
+        Args:
+            text: Text to extract amounts from
+            max_amount: Maximum valid amount (default: 99999.99)
+            
+        Returns:
+            List of valid amounts (floats)
+        """
+        if max_amount is None:
+            max_amount = self.MAX_AMOUNT
+        
+        if not text:
+            return []
+        
+        cleaned = text
+        
+        # Remove account numbers (10+ digits)
+        cleaned = re.sub(r'\b\d{10,}\b', ' ', cleaned)
+        # Remove card numbers (CD XXXX patterns)
+        cleaned = re.sub(r'\bCD\s+\d+', ' ', cleaned)
+        # Remove sort codes (XX-XX-XX)
+        cleaned = re.sub(r'\b\d{2}-\d{2}-\d{2}\b', ' ', cleaned)
+        # Remove reference codes (letters + 8+ digits)
+        cleaned = re.sub(r'\b[A-Z]{2,}\d{8,}\b', ' ', cleaned)
+        
+        # Extract amounts (max 5 digits before decimal, exactly 2 after)
+        amount_pattern = r'(\d{1,5}(?:,\d{3})*\.\d{2})'
+        matches = re.findall(amount_pattern, cleaned)
+        
+        # Convert and validate
+        amounts = []
+        for match in matches:
+            try:
+                amount = float(match.replace(',', ''))
+                if self.MIN_AMOUNT <= amount <= max_amount:
+                    amounts.append(amount)
+            except ValueError:
+                continue
+        
+        return amounts
+    
+    def parse_date_universal(self, date_str: str, year: str = None) -> Optional[str]:
+        """
+        Parse date string using all known UK formats.
+        
+        Handles:
+        - DD/MM/YYYY, DD/MM/YY
+        - DD-MM-YYYY, DD-MM-YY
+        - DD MMM YYYY, DD MMM YY, DD MMM
+        - Ordinal dates (1st, 2nd, 3rd, 4th)
+        
+        Args:
+            date_str: Date string to parse
+            year: Year to append if not in string
+            
+        Returns:
+            ISO format date (YYYY-MM-DD) or None
+        """
+        if not date_str:
+            return None
+        
+        date_str = date_str.strip()
+        
+        # Remove ordinal suffixes (1st, 2nd, 3rd, 4th, etc.)
+        date_str = re.sub(r'(\d+)(st|nd|rd|th)\b', r'\1', date_str, flags=re.IGNORECASE)
+        
+        # UK date formats to try
+        formats = [
+            '%d/%m/%Y',       # 18/09/2023
+            '%d/%m/%y',       # 18/09/23
+            '%d-%m-%Y',       # 18-09-2023
+            '%d-%m-%y',       # 18-09-23
+            '%d %B %Y',       # 18 September 2023
+            '%d %b %Y',       # 18 Sep 2023
+            '%d %b %y',       # 18 Sep 23
+        ]
+        
+        # Append year if not present
+        if year and not re.search(r'\d{4}', date_str) and not re.search(r'\d{2}$', date_str):
+            date_str_with_year = f"{date_str} {year}"
+        else:
+            date_str_with_year = date_str
+        
+        for fmt in formats:
+            try:
+                date_obj = datetime.strptime(date_str_with_year, fmt)
+                # Validate year is reasonable
+                current_year = datetime.now().year
+                if abs(date_obj.year - current_year) <= 3:
+                    return date_obj.strftime('%Y-%m-%d')
+            except ValueError:
+                continue
+        
+        # Manual parsing fallback for "DD MMM" format
+        match = re.match(r'(\d{1,2})\s+([A-Za-z]{3,9})(?:\s+(\d{2,4}))?', date_str)
+        if match:
+            day = int(match.group(1))
+            month_str = match.group(2).lower()[:3]
+            year_str = match.group(3) or year
+            
+            month = self.MONTH_MAP.get(month_str)
+            if month and year_str:
+                try:
+                    if len(str(year_str)) == 2:
+                        year_int = 2000 + int(year_str) if int(year_str) < 50 else 1900 + int(year_str)
+                    else:
+                        year_int = int(year_str)
+                    
+                    date_obj = datetime(year_int, month, day)
+                    return date_obj.strftime('%Y-%m-%d')
+                except (ValueError, TypeError):
+                    pass
+        
+        self.logger.debug(f"Could not parse date: '{date_str}'")
+        return None
+    
+    def group_lines_into_blocks(self, lines: List[str], date_pattern: str, max_block_lines: int = 10) -> List[Dict]:
+        """
+        Group text lines into transaction blocks.
+        
+        A block starts with a date and includes all following lines
+        until the next date (or max lines reached).
+        
+        Args:
+            lines: List of text lines
+            date_pattern: Regex for detecting dates
+            max_block_lines: Maximum lines per block
+            
+        Returns:
+            List of block dicts with 'lines', 'date_line', 'start_idx'
+        """
+        blocks = []
+        i = 0
+        
+        while i < len(lines):
+            line = lines[i].strip()
+            
+            if not line:
+                i += 1
+                continue
+            
+            # Check if line starts with date
+            date_match = re.match(date_pattern, line, re.IGNORECASE)
+            
+            if date_match:
+                block_lines = [line]
+                start_idx = i
+                
+                # Look ahead for continuation lines
+                j = i + 1
+                while j < len(lines) and j < i + max_block_lines:
+                    next_line = lines[j].strip()
+                    
+                    # Stop if we hit another date line
+                    if next_line and re.match(date_pattern, next_line, re.IGNORECASE):
+                        break
+                    
+                    if next_line:
+                        block_lines.append(next_line)
+                    
+                    j += 1
+                
+                blocks.append({
+                    'lines': block_lines,
+                    'date_line': line,
+                    'date_match': date_match.group(0),
+                    'start_idx': start_idx,
+                    'end_idx': j - 1
+                })
+                
+                i = j
+            else:
+                i += 1
+        
+        return blocks
+    
+    def look_backward_for_merchant(self, lines: List[str], current_idx: int, max_lookback: int = 3) -> str:
+        """
+        Look backward from current line for merchant/description.
+        
+        Used for banks like Monzo where merchant appears BEFORE the date line.
+        
+        Args:
+            lines: All lines
+            current_idx: Current position
+            max_lookback: How far back to look
+            
+        Returns:
+            Combined description from previous lines
+        """
+        stop_patterns = [
+            r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}',  # Date patterns
+            r'^Date\b', r'^Description\b', r'^Balance\b',  # Headers
+        ]
+        
+        description_parts = []
+        
+        for j in range(1, min(max_lookback + 1, current_idx + 1)):
+            prev_line = lines[current_idx - j].strip()
+            
+            # Stop if we hit a stop pattern
+            should_stop = False
+            for pattern in stop_patterns:
+                if re.search(pattern, prev_line, re.IGNORECASE):
+                    should_stop = True
+                    break
+            
+            if should_stop:
+                break
+            
+            # Skip very short lines or pure numbers
+            if len(prev_line) < 3 or re.match(r'^[\d\.\-,\s£]+$', prev_line):
+                continue
+            
+            # Skip reference lines
+            if prev_line.lower().startswith('reference:'):
+                continue
+            
+            description_parts.insert(0, prev_line)
+        
+        return ' '.join(description_parts)
+    
+    def calculate_missing_balances(self, transactions: List[Dict]) -> List[Dict]:
+        """
+        Calculate missing balances from known values.
+        
+        Works both forward and backward from the first known balance.
+        
+        Args:
+            transactions: List of transactions (may have None balances)
+            
+        Returns:
+            Transactions with balances filled in
+        """
+        if not transactions or len(transactions) < 2:
+            return transactions
+        
+        # Find first known balance
+        first_balance_idx = None
+        for i, txn in enumerate(transactions):
+            if txn.get('balance') is not None:
+                first_balance_idx = i
+                break
+        
+        if first_balance_idx is None:
+            return transactions
+        
+        # Calculate forward
+        current_balance = float(transactions[first_balance_idx]['balance'])
+        
+        for i in range(first_balance_idx + 1, len(transactions)):
+            credit = float(transactions[i].get('credit', 0) or 0)
+            debit = float(transactions[i].get('debit', 0) or 0)
+            current_balance = current_balance + credit - debit
+            
+            if transactions[i].get('balance') is None:
+                transactions[i]['balance'] = round(current_balance, 2)
+            else:
+                current_balance = float(transactions[i]['balance'])
+        
+        # Calculate backward
+        if first_balance_idx > 0:
+            current_balance = float(transactions[first_balance_idx]['balance'])
+            
+            for i in range(first_balance_idx - 1, -1, -1):
+                # Reverse the calculation: to get previous balance
+                credit = float(transactions[i + 1].get('credit', 0) or 0)
+                debit = float(transactions[i + 1].get('debit', 0) or 0)
+                current_balance = current_balance - credit + debit
+                
+                if transactions[i].get('balance') is None:
+                    transactions[i]['balance'] = round(current_balance, 2)
+                else:
+                    current_balance = float(transactions[i]['balance'])
+        
+        return transactions
+    
+    def deduplicate_transactions(self, transactions: List[Dict]) -> List[Dict]:
+        """
+        Remove duplicate transactions.
+        
+        Uses date + amount + description prefix as key.
+        
+        Args:
+            transactions: List of transactions (may have duplicates)
+            
+        Returns:
+            List with duplicates removed
+        """
+        seen = set()
+        unique = []
+        
+        for txn in transactions:
+            # Create key from date, total amount, and description prefix
+            amount = round((txn.get('debit', 0) or 0) + (txn.get('credit', 0) or 0), 2)
+            desc_prefix = (txn.get('description', '') or '')[:30].lower()
+            key = (txn.get('date'), amount, desc_prefix)
+            
+            if key not in seen:
+                seen.add(key)
+                unique.append(txn)
+        
+        return unique
+    
+    def extract_year_from_text(self, text: str) -> Optional[str]:
+        """
+        Extract year from statement text.
+        
+        Looks for common patterns in statement headers.
+        
+        Args:
+            text: Statement text (usually first page)
+            
+        Returns:
+            Year string (e.g., "2023") or None
+        """
+        patterns = [
+            r'\d{1,2}\s+-\s+\d{1,2}\s+\w{3}\s+(\d{4})',  # "01 - 28 Apr 2023"
+            r'Statement\s+date[:\s]+\d{1,2}\s+\w{3}\s+(\d{4})',
+            r'(\d{4})[-/]\d{2}[-/]\d{2}',  # ISO date
+            r'\d{1,2}[-/]\d{1,2}[-/](\d{4})',  # UK date
+            r'\b(20\d{2})\b',  # Any year 2000-2099
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, text)
+            if match:
+                return match.group(1)
+        
+        return None

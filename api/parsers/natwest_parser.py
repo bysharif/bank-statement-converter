@@ -65,9 +65,12 @@ class NatWestParser(BaseBankParser):
         self.logger.info(f"Processing {len(rows)} table rows")
 
         # Group rows into transaction blocks
+        # CRITICAL: A row without a date but WITH an amount is a NEW transaction
+        # (NatWest doesn't repeat the date for same-day transactions)
         self.logger.debug("Grouping rows into transaction blocks...")
         blocks = []
         current_block = None
+        last_date = None
 
         for row_idx, row in enumerate(rows):
             if not row or len(row) < 6:
@@ -75,12 +78,33 @@ class NatWestParser(BaseBankParser):
 
             date, tx_type, description, paid_in, paid_out, balance = row[:6]
 
+            # Check if this row has an amount (indicates it's a transaction, not a continuation)
+            has_amount = bool((paid_in and paid_in.strip() and '£' in paid_in) or
+                             (paid_out and paid_out.strip() and '£' in paid_out))
+
             if date and date.strip():
+                # Row has a date - definitely a new transaction
+                if current_block:
+                    blocks.append(current_block)
+
+                last_date = date.strip()
+                current_block = {
+                    'date': last_date,
+                    'type_parts': [tx_type.strip() if tx_type else ''],
+                    'description_parts': [description.strip() if description else ''],
+                    'paid_in': paid_in.strip() if paid_in else '',
+                    'paid_out': paid_out.strip() if paid_out else '',
+                    'balance': balance.strip() if balance else '',
+                    'row_start': row_idx,
+                    'row_end': row_idx
+                }
+            elif has_amount and last_date:
+                # No date but HAS amount - this is a NEW transaction with same date
                 if current_block:
                     blocks.append(current_block)
 
                 current_block = {
-                    'date': date.strip(),
+                    'date': last_date,  # Use the last known date
                     'type_parts': [tx_type.strip() if tx_type else ''],
                     'description_parts': [description.strip() if description else ''],
                     'paid_in': paid_in.strip() if paid_in else '',
@@ -90,6 +114,7 @@ class NatWestParser(BaseBankParser):
                     'row_end': row_idx
                 }
             elif current_block:
+                # No date, no amount - this is a continuation of the previous transaction
                 current_block['row_end'] = row_idx
 
                 if tx_type and tx_type.strip():
@@ -98,11 +123,12 @@ class NatWestParser(BaseBankParser):
                 if description and description.strip():
                     current_block['description_parts'].append(description.strip())
 
-                if paid_in and paid_in.strip():
+                # Only update amounts if they're filled (continuation rows shouldn't have new amounts)
+                if paid_in and paid_in.strip() and '£' in paid_in and not current_block['paid_in']:
                     current_block['paid_in'] = paid_in.strip()
-                if paid_out and paid_out.strip():
+                if paid_out and paid_out.strip() and '£' in paid_out and not current_block['paid_out']:
                     current_block['paid_out'] = paid_out.strip()
-                if balance and balance.strip():
+                if balance and balance.strip() and '£' in balance:
                     current_block['balance'] = balance.strip()
 
         if current_block:

@@ -165,16 +165,28 @@ export async function POST(request: NextRequest) {
 
 // Helper function to generate limited CSV
 function generateLimitedCSV(transactions: any[], originalCSV: string): string {
-  const headerLine = originalCSV.split('\n')[0]
-  const csvLines = [headerLine]
+  // Always use standardized header regardless of original
+  const csvLines = ['Date,Description,Debit,Credit']
 
   transactions.forEach(txn => {
-    const debit = txn.type === 'debit' ? txn.amount.toFixed(2) : ''
-    const credit = txn.type === 'credit' ? txn.amount.toFixed(2) : ''
-    const balance = txn.balance ? txn.balance.toFixed(2) : ''
-    const description = txn.description.includes(',') ? `"${txn.description}"` : txn.description
-
-    csvLines.push(`${txn.date},${description},${debit},${credit},${balance}`)
+    // Use explicit debit/credit fields if available, otherwise derive from type + amount
+    let debit = ''
+    let credit = ''
+    
+    if (txn.debit !== undefined && txn.debit > 0) {
+      debit = txn.debit.toFixed(2)
+    } else if (txn.credit !== undefined && txn.credit > 0) {
+      credit = txn.credit.toFixed(2)
+    } else if (txn.amount !== undefined && !isNaN(txn.amount)) {
+      if (txn.type === 'debit') {
+        debit = txn.amount.toFixed(2)
+      } else {
+        credit = txn.amount.toFixed(2)
+      }
+    }
+    
+    const description = (txn.description || '').includes(',') ? `"${txn.description}"` : (txn.description || '')
+    csvLines.push(`${txn.date},${description},${debit},${credit}`)
   })
 
   return csvLines.join('\n')
@@ -182,15 +194,27 @@ function generateLimitedCSV(transactions: any[], originalCSV: string): string {
 
 // Helper function to generate CSV from transactions
 function generateCSVFromTransactions(transactions: any[]): string {
-  const lines = ['Date,Description,Debit,Credit,Balance']
+  const lines = ['Date,Description,Debit,Credit']
 
   transactions.forEach(txn => {
-    const debit = txn.type === 'debit' ? txn.amount.toFixed(2) : ''
-    const credit = txn.type === 'credit' ? txn.amount.toFixed(2) : ''
-    const balance = txn.balance ? txn.balance.toFixed(2) : ''
-    const description = txn.description.includes(',') ? `"${txn.description}"` : txn.description
-
-    lines.push(`${txn.date},${description},${debit},${credit},${balance}`)
+    // Use explicit debit/credit fields if available, otherwise derive from type + amount
+    let debit = ''
+    let credit = ''
+    
+    if (txn.debit !== undefined && txn.debit > 0) {
+      debit = txn.debit.toFixed(2)
+    } else if (txn.credit !== undefined && txn.credit > 0) {
+      credit = txn.credit.toFixed(2)
+    } else if (txn.amount !== undefined && !isNaN(txn.amount)) {
+      if (txn.type === 'debit') {
+        debit = txn.amount.toFixed(2)
+      } else {
+        credit = txn.amount.toFixed(2)
+      }
+    }
+    
+    const description = (txn.description || '').includes(',') ? `"${txn.description}"` : (txn.description || '')
+    lines.push(`${txn.date},${description},${debit},${credit}`)
   })
 
   return lines.join('\n')

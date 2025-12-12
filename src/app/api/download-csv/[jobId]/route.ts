@@ -69,7 +69,7 @@ export async function GET(
 }
 
 function generateCSV(transactions: any[]): string {
-  const headerLine = 'Date,Description,Debit,Credit,Balance'
+  const headerLine = 'Date,Description,Debit,Credit'
   const csvLines = [headerLine]
 
   transactions.forEach(txn => {
@@ -78,10 +78,9 @@ function generateCSV(transactions: any[]): string {
     const amount = Math.abs(txn.amount || 0)
     const debit = txn.amount < 0 ? amount.toFixed(2) : ''
     const credit = txn.amount >= 0 ? amount.toFixed(2) : ''
-    const balance = txn.balance ? txn.balance.toFixed(2) : ''
     const description = (txn.description || '').includes(',') ? `"${txn.description}"` : txn.description || ''
 
-    csvLines.push(`${date},${description},${debit},${credit},${balance}`)
+    csvLines.push(`${date},${description},${debit},${credit}`)
   })
 
   return csvLines.join('\n')
