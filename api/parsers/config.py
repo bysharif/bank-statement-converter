@@ -190,6 +190,21 @@ BANK_CONFIGS: Dict[str, BankConfig] = {
         reverse_chronological=True,  # Wise shows newest first
         has_running_balance=True,
     ),
+
+    "tide": BankConfig(
+        bank_id="tide",
+        display_name="Tide",
+        date_formats=["%d %b %Y"],  # "31 Aug 2024"
+        date_pattern=r'^\d{1,2}\s+[A-Za-z]{3}\s+\d{4}',
+        header_keywords=["Date", "Transaction type", "Details", "Paid in", "Paid out", "Balance"],
+        credit_type_codes=["domestic transfer", "received", "refund", "deposit"],
+        debit_type_codes=["card transaction", "direct debit", "standing order", "payment"],
+        max_lookback_lines=2,
+        max_lookahead_lines=5,
+        skip_patterns=["tide card:", "page", "statement for:", "business owner:", "account number:"],
+        reverse_chronological=True,  # Tide shows newest first
+        has_running_balance=True,
+    ),
 }
 
 
@@ -265,5 +280,6 @@ TYPE_CODE_NAMES: Dict[str, str] = {
 def get_type_name(type_code: str) -> str:
     """Get human-readable name for a transaction type code"""
     return TYPE_CODE_NAMES.get(type_code.upper(), type_code)
+
 
 

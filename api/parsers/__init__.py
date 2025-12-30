@@ -52,6 +52,7 @@ from .natwest_parser import NatWestParser
 from .santander_parser import SantanderParser
 from .anna_parser import ANNAParser
 from .wise_parser import WiseParser
+from .tide_parser import TideParser
 
 # Parser registry for easy access
 PARSER_REGISTRY = {
@@ -64,6 +65,7 @@ PARSER_REGISTRY = {
     'santander': SantanderParser,
     'anna': ANNAParser,
     'wise': WiseParser,
+    'tide': TideParser,
 }
 
 
@@ -141,7 +143,8 @@ __all__ = [
     'SantanderParser',
     'ANNAParser',
     'WiseParser',
-    
+    'TideParser',
+
     # Registry
     'PARSER_REGISTRY',
     'get_parser',
